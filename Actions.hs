@@ -249,7 +249,7 @@ checkNextAction x y
         || (x, y) == (5, 0) 
         || (x, y) == (5, 3)
         || (x, y) == (7, 2) = Combat
-    -- Bump[ed into Arechron 
+    -- Bumped into Arechron 
     | (x, y) == (6, 2) = Arechron
     -- Combat boss
     | (x, y) == (3, 1)
