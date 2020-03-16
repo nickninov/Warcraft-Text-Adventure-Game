@@ -170,7 +170,7 @@ movement x y player = do
         let newCord = move dir x y
         
         -- Display a random move quote
-        randomMoveQuote (getRandomNumber 1 4) 40000
+        randomMoveQuote (getRandomNumber 1 4) 20000
 
         -- Check what has happened to the player
         let action = checkNextAction (fst newCord) (snd newCord)
@@ -339,7 +339,7 @@ checkPlayerStatus status x y player
         movement (decPos x) y player
     -- Check if player has bumped into a person
     | status == Person = do
-        person (getRandomNumber 1 3) 40000
+        person (getRandomNumber 1 3) 20000
         movement x y player
     -- Check if player has finished the game
     | status == Finish = finish
@@ -388,9 +388,9 @@ battleCry player x y = do
     let newAttacks = map (\x -> ((fst x), ((snd x) + ((snd x) * 0.05)))) (attacks player)
     let newChar = Character newName newAttacks newCrit newHealth newMaxHealth
 
-    dialogue "Samuro" "For the Burning Blade!\n" 40000
-    dialogue "Battle cry" "Increase overall damage by 0.5% for all of your spells!\n" 40000
-    slowTextRec "Your wounds magically heal faster. You have been restored to maximum health.\n" 40000
+    dialogue "Samuro" "For the Burning Blade!\n" 20000
+    dialogue "Battle cry" "Increase overall damage by 0.5% for all of your spells!\n" 20000
+    slowTextRec "Your wounds magically heal faster. You have been restored to maximum health.\n" 20000
 
     -- Move character
     movement x y newChar
@@ -422,11 +422,11 @@ felChoice player x y choice
         
         let newChar = Character newName newAttacks newCrit newHealth newMaxHealth
         setSGR [SetColor Foreground Vivid Green]
-        slowTextRec "You have accepted Gul'dan's offer. Now you feel stronger!\n" 40000
+        slowTextRec "You have accepted Gul'dan's offer. Now you feel stronger!\n" 20000
 
         movement x y newChar
     | choice == "no" = do
-        slowTextRec "You have rejected Gul'dan's gift.\n" 40000
+        slowTextRec "You have rejected Gul'dan's gift.\n" 20000
         movement x y player
     | otherwise = felBlood player x y
 
@@ -451,5 +451,5 @@ narusGift player x y = do
     
     let newChar = Character newName newAttacks newCrit newHealth newMaxHealth
     -- Naru's gift info
-    dialogue "Naru's gift" "Heals you and tripples your health.\n" 40000
+    dialogue "Naru's gift" "Heals you and tripples your health.\n" 20000
     movement x y newChar

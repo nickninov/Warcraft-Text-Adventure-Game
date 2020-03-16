@@ -86,7 +86,7 @@ randomMoveQuote rng time
 -- Diallgue introduction - imported inside main.hs
 intro :: IO ()
 intro = do
-    let time = 40000
+    let time = 20000
     setTitle "21361642's Warcraft Text Adventure Game"
 
     slowTextRec "21361642's Warcraft Text Adventure Game\n" time
@@ -114,7 +114,7 @@ credits time = do
 -- Diallgue for successfully completed the game - imported inside Movement.hs
 finish :: IO ()
 finish = do
-    let time = 40000
+    let time = 20000
     setSGR [SetColor Foreground Vivid Yellow]
     slowTextRec "Quest completed!\n" time
     slowTextRec "You have successfully completed the Warcraft Text Adventure Game!" time
@@ -135,7 +135,7 @@ deathText string time = do
 killedByEnemy :: Character -> IO ()
 killedByEnemy enemy = do
     setSGR [SetColor Foreground Vivid Red]
-    let time = 40000
+    let time = 20000
     let text = "You have been slain in combat by "++(name enemy)++"!\nThis is the most honorable death for an Orc!\nGame over!"
     deathText text time
     credits time
@@ -144,7 +144,7 @@ killedByEnemy enemy = do
 killedEnemy :: Character -> Character -> X -> Y -> IO ()
 killedEnemy player enemy x y = do
     setSGR [SetColor Foreground Vivid Red]
-    let time = 40000
+    let time = 20000
     let text = name enemy ++ " was slain by "++ name player ++".\n"
     deathText text time
     setSGR []
@@ -152,7 +152,7 @@ killedEnemy player enemy x y = do
 -- Diallgue for Fel blood
 felOffer :: IO ()
 felOffer = do
-    let time = 40000
+    let time = 20000
     setSGR [SetColor Foreground Vivid Green]
     slowTextRec "You have bumped into a Fel blood pool. Drink the blood of the demons and your overall damage and critical strike will increase by 50%.\n" time
     dialogue "Side effect" "You lose 10% of your maximum health\n" time
@@ -165,32 +165,32 @@ felOffer = do
 -- Diallgue for reaching Fel lava
 felLava :: IO ()
 felLava = do
-    let time = 40000
+    let time = 20000
     dialogue "Samuro" "I have reached Fel lava. This does not look like the way to go. I need to go back and find a bridge to cross.\n" time
 
 -- Diallgue for reaching initial Fel lava - (0, 0)
 endOfMap :: IO ()
 endOfMap = do
-    let time = 40000
+    let time = 20000
     dialogue "Samuro" "I have reached the end of this realm. There seems to be nothing there. I need to go back and find the portal.\n" time
     slowTextRec "All you can see are the countless worlds, invaded by the Burning Legion. You head back.\n" time
 
 -- Diallgue for reaching a portal
 portal :: IO ()
 portal = do
-    let time = 40000
+    let time = 20000
     slowTextRec "You have been randomly teleported in the next zone. An enemy attacks you from behind.\n" time
 
 -- Diallgue for entering combat with a boss
 bossIntro :: IO ()
 bossIntro = do
-    let time = 40000
+    let time = 20000
     slowTextRec "In front of you see an enormous demon charging furiously at you!\n" time
 
 -- Diallgue for seeing a corpse
 corpse :: IO ()
 corpse = do
-    let time = 40000
+    let time = 20000
     slowTextRec "As you are walking you see a slain fellow orc.\n" time
     dialogue "Samuro" "You will be avenged fallen brother!\n" time
     slowTextRec "You pay respect to the fallen orc.\n" time
@@ -198,7 +198,7 @@ corpse = do
 -- Dialogue for reaching the Fel Firewall from right the right side
 felFireWallBump :: IO ()
 felFireWallBump = do
-    let time = 40000
+    let time = 20000
     dialogue "Samuro" "It seems that I cannot go forward anymore. The Fel fire will burn me! Going back East\n" time
     slowTextRec "You go back.\n" time
 
@@ -221,7 +221,7 @@ person n time
 -- Dialogue with Arechron
 dialogueArechron :: IO ()
 dialogueArechron = do
-        let time = 40000
+        let time = 20000
         slowTextRec "As you are walking you see something in the distance.\n" time
         dialogue "Arechron" "Ah, hello champion! I have been watching you since you arrived on this realm and aiding!\n" time
         dialogue "Samuro" "At least you are alive. What is this place? Who are you?\n" time
