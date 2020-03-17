@@ -17,7 +17,9 @@ import Data.Char
 healthStatus :: Character -> Character -> X -> Y -> IO ()
 healthStatus player enemy x y
     -- Both player and enemy are alive
-    | health player > 0 && health enemy > 0 = combat player enemy x y
+    | health player > 0 && health enemy > 0 = do
+        clear
+        combat player enemy x y
     -- Enemy has been slain
     | health player > 0 && health enemy <= 0 = do 
         killedEnemy player enemy x y
@@ -118,7 +120,8 @@ playerSpell :: Character -> Character -> Option -> AttackStatus
 playerSpell player enemy input 
     | input == '1'
         || input == '2' && health enemy <= maxHealth enemy * 0.7
-        || input == '3' && health enemy <= maxHealth enemy * 0.5 = do
+        || input == '3' && health enemy <= maxHealth enemy * 0.5 
+        || input == '4' && health enemy <= maxHealth enemy * 0.2 = do
             let dmg = snd ([x | x <- (attacks player), any (==input) (fst $ fst x)] !! 0)
             (True, dmg)
     | otherwise = (False, 0)
@@ -180,18 +183,18 @@ movement :: X -> Y -> Character -> IO ()
 movement x y player = do
 
     -- Get user desired location
-    putStr ("Go: ")
-    direction <- getLine 
+    putStr ("Action: ")
+    actionInput <- getLine 
     putStrLn ""
 
-    let dir = removeMaybe $ stringToMovement $ toUp direction
+    let action = removeMaybe $ stringToMovement $ toUp actionInput
 
     -- Check if input was valid
-    if dir == Exit
+    if action == Exit
         then movement x y player
     else do
         -- Move inside grid
-        let newCord = move dir x y
+        let newCord = move action x y
         
         -- Display a random move quote
         randomMoveQuote (getRandomNumber 1 4) 20000
@@ -204,7 +207,7 @@ movement x y player = do
     return ()
 
 -- Convert the String movement to a Maybe Movement data type
-stringToMovement :: String -> Maybe Movement
+stringToMovement :: String -> Maybe Action
 stringToMovement "North" = Just North
 stringToMovement "South" = Just South
 stringToMovement "East" = Just East
@@ -214,17 +217,17 @@ stringToMovement "Exit" = Just Exit
 stringToMovement _ = Nothing
 
 -- Remove Maybe from Movement data type
-removeMaybe :: Maybe Movement -> Movement
+removeMaybe :: Maybe Action -> Action
 removeMaybe Nothing = Exit
 removeMaybe (Just dir) = dir
 
 -- Move position within grid
-move :: Movement -> X -> Y -> Position
-move direction x y 
-    | direction == North = (x, decPos y)
-    | direction == South = (x, incPos y)
-    | direction == East = (incPos x, y)
-    | direction == West =  (decPos x, y)
+move :: Action -> X -> Y -> Position
+move action x y 
+    | action == North = (x, decPos y)
+    | action == South = (x, incPos y)
+    | action == East = (incPos x, y)
+    | action == West =  (decPos x, y)
 
 -- Check player's next action
 checkNextAction :: X -> Y -> CharacterStatus
@@ -349,7 +352,6 @@ checkPlayerStatus status x y player
     | status == Arechron = do 
         dialogueArechron
         narusGift player x y
-
     -- Check if player has bumped into a corpse
     | status == Corpse = do
         corpse

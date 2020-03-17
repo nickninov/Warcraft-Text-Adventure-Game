@@ -17,10 +17,13 @@ type Description = String
 type Option = Char
 type Spells = [((Name, Description), Attack)]
 type AttackStatus = (Bool, Attack)
+type Item = (Name, Attack)
+type Inventory = [Item]
+
 -- Data Types
 
--- Movement data type - which way to move
-data Movement = South | East | West | North | Exit
+-- Action data type - actions that the user can do
+data Action = South | East | West | North | Exit
     deriving (Show, Read, Eq)
 
 -- Character data type 

@@ -106,7 +106,7 @@ intro = do
     
     putStrLn "How to play:\n"
     dialogue "Movement" "Type north, south, east or west to move around the map.\n" time
-    dialogue "Combat" "Whilst walking you may encounter different difficulty enemies. Press 1, 2 or 3 to cast a spell on an enemy.\n" time
+    dialogue "Combat" "Whilst walking you may encounter different difficulty enemies. Press 1, 2, 3 or 4 to cast a spell on an enemy.\n" time
     dialogue "Interaction" "You may encounter with other people, trapped in this realm or corpses of fallen heroes.\n" time
     quest "Quest" "Find a portal to Durotar!\n" time
     dialogue "Tip" "Go south.\n" time

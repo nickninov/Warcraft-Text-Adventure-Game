@@ -15,7 +15,7 @@ main = do
     let startPos = (1, 1)
     let health = 200.00
     let crit = 0.5
-    let spells = [(("1) Heroic Strike", "A strong attack that increases melee damage. Can be casted all the time."), 40.00), (("2) Mortal Strike", "A vicious strike that deals weapon damage. Can be casted on enemies below 70% health"), 50.00), (("3) Bladestorm", "Become an unstoppable storm of destructive force. Can be casted on enemies below 50%"), 60.00)]
+    let spells = [(("1) Heroic Strike", "A strong attack that increases melee damage. Can be casted all the time."), 40.00), (("2) Mortal Strike", "A vicious strike that deals weapon damage. Can be casted on enemies below 70% health"), 50.00), (("3) Bladestorm", "Become an unstoppable storm of destructive force. Can be casted on enemies below 50%"), 60.00), (("4) Execute", "Attempt to finish off a wounded foe. Can be casted to enemy below 20%."), 70.00) ]
     let character = Character "Samuro" spells crit health health
 
     -- Intro effect - imported from Effects.hs
