@@ -34,22 +34,32 @@ showHealth character = do
     putStr (name character)
     putStr "'s health: "
 
+    -- Calculate health in percentage
+    let hpPercent = (health character / maxHealth character) * 100
+
     -- Display character's health
-    showHealthStatus character
+    showHealthStatus character hpPercent
 
 -- Show character's health in different colours
-showHealthStatus :: Character -> IO()
-showHealthStatus character 
+showHealthStatus :: Character -> Double -> IO()
+showHealthStatus character hpPercent
     -- Green health - from max health to half health
     | health character <= maxHealth character && health character >= maxHealth character / 2 = do
         setSGR [SetColor Foreground Vivid Green]
-        print $ health character
+        putStr $ show $ round $ health character
+        putStr " ("
+        putStr $ show $ round hpPercent
+        putStrLn "%)"
         setSGR []
     -- Red health - for health lower than half
     | otherwise = do
         setSGR [SetColor Foreground Vivid Red]
-        print $ health character
+        putStr $ show $ round $ health character
+        putStr " ("
+        putStr $ show $ round hpPercent
+        putStrLn "%)"
         setSGR []
+
 -- Display quest with yellow colour
 quest :: String -> String -> Int -> IO ()
 quest person text time = do
@@ -228,3 +238,12 @@ dialogueArechron = do
         dialogue "Arechron" "I am Arechron, a Broken. We are a mutated Dranei race that was exposed to the Fel energies wielded by Orc Warlocks. You are currently in Outland - the shattered floating remnants of the destroyed world of Draenor. It was the homeworld of the Orcs and refuge of the Draenei. However the Burning Legion has managed to invade us and are teleporting champions from different worlds here to test their might. The only way to get out of here is just to head east. I have never met anybody as strong as you! I am giving you Naru's blessing! It will aid you in battle against the Pit Lord.\n" time
         dialogue "Samuro" "Lok'tar Archeron!\n" time
         dialogue "Arechron" "Good luck!\n" time
+
+-- Punishment text for skipping a turn
+punishmentText :: Character -> IO ()
+punishmentText enemy = do
+    setSGR [SetColor Foreground Vivid Red]
+    let text = "You got distracted! " ++ name enemy ++ " attacked you!\n"
+    let time = 20000
+    slowTextRec text time
+    setSGR []

@@ -24,7 +24,10 @@ healthStatus player enemy x y
         battleCry player x y
     -- Player has been slain
     | health player <= 0 && health enemy > 0 = killedByEnemy enemy
-    | otherwise = putStr "Both player and enemy died..."
+    -- Both player and enemy died
+    | otherwise = do
+         putStr "Both player and enemy died...\n"
+         finish
 
 -- The combat logic
 combat :: Character -> Character -> X -> Y -> IO ()
@@ -45,7 +48,7 @@ combat player enemy x y = do
     let enemyOption = enemySpell enemy (intToDigit $ getRandomNumber 1 3)
 
     -- Check if player's input is valid and returns the spell's attack
-    let status = playerSpell player playerOption
+    let status = playerSpell player enemy playerOption
 
     -- Check if player can attack
     if fst status == True
@@ -59,7 +62,7 @@ combat player enemy x y = do
             putStr "Damage dealt to "
             putStr $ name enemy
             putStr ": "
-            print dmgPlayer
+            print $ round dmgPlayer
             putStrLn ""
 
             -- Deal damage to enemy
@@ -74,13 +77,32 @@ combat player enemy x y = do
             putStr "Damage dealt to "
             putStr $ name player
             putStr ": "
-            print $ enemyOption
+            print $ round $ enemyOption
             putStrLn "\n"
 
             -- Check characters' health
             healthStatus newPlayerStats newEnemyStats x y
+    
+    -- Unsuccessful attack - enemy attacks
     else
-        healthStatus player enemy x y
+        do
+            clear
+            punishmentText enemy
+            -- Check if enemy should crit
+            let critStatusEnemy = shouldCrit (getRandomNumber 1 50) (getRandomNumber 51 100)
+            let dmgEnemy = critChance critStatusEnemy enemy enemyOption
+
+            -- Deal damage to player
+            setSGR [SetColor Foreground Vivid Red]
+            let newPlayerStats = attackPlayer enemyOption player
+            putStr "Damage dealt to "
+            putStr $ name player
+            putStr ": "
+            print $ round $ enemyOption
+            putStrLn "\n"
+            setSGR []
+            -- Check characters' health
+            healthStatus newPlayerStats enemy x y
     return ()
 
 -- Shows the player the spells and their damage
@@ -92,13 +114,15 @@ showSpells (x:xs) = do
     showSpells xs
 
 -- Returns the selected spell's attack
-playerSpell :: Character -> Option -> AttackStatus
-playerSpell player input 
-    | input == '1' || input == '2' || input == '3' = do
+playerSpell :: Character -> Character -> Option -> AttackStatus
+playerSpell player enemy input 
+    | input == '1'
+        || input == '2' && health enemy <= maxHealth enemy * 0.7
+        || input == '3' && health enemy <= maxHealth enemy * 0.5 = do
             let dmg = snd ([x | x <- (attacks player), any (==input) (fst $ fst x)] !! 0)
             (True, dmg)
     | otherwise = (False, 0)
-
+    
 -- Returns the selected spell's damage
 enemySpell :: Character -> Option -> Attack
 enemySpell enemy input = snd ([x | x <- (attacks enemy), any (==input) (fst $ fst x)] !! 0)
@@ -280,6 +304,7 @@ checkPlayerStatus status x y player
     | status == Dead = do
         setSGR [SetColor Foreground Dull Yellow]
         putStrLn "Game over. You died!\n"
+        finish
         setSGR []
     -- Check if the player is in combat
     | status == Combat = do
