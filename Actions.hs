@@ -111,7 +111,7 @@ combat player enemy x y = do
 showSpells :: Spells -> IO ()
 showSpells [] = return ()
 showSpells (x:xs) = do
-    showSkills (fst $ fst x) (snd $ fst x) (show $ snd x) 20000
+    showSkills (fst $ fst x) (snd $ fst x) (show $ round $ snd x) 20000
     putStrLn ""
     showSpells xs
 
@@ -140,8 +140,10 @@ attackEnemy playerAttack enemy = newEnemy
         critical = crit enemy
         enemyHP = health enemy - playerAttack
         maxHP = maxHealth enemy
+        newInventory = inventory enemy
+        newWeapon = weapon enemy
 
-        newEnemy = Character newName attack critical enemyHP maxHP
+        newEnemy = Character newName attack critical enemyHP maxHP newInventory newWeapon
 
 -- Attacks the player
 attackPlayer :: Attack -> Character -> Character
@@ -153,8 +155,10 @@ attackPlayer enemyAttack player = newPlayer
         critical = crit player
         playerHP = health player - enemyAttack
         maxHP = maxHealth player
+        newInventory = inventory player
+        newWeapon = weapon player
 
-        newPlayer = Character newName attack critical playerHP maxHP
+        newPlayer = Character newName attack critical playerHP maxHP newInventory newWeapon
 
 -- Critical chance calculation
 shouldCrit :: Int -> Int -> Bool
@@ -176,50 +180,188 @@ critChance status character dmg
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
+-- Display inventory and options
+inventoryOption :: Character -> X -> Y -> IO()
+inventoryOption player x y = do
+    slowTextRec "Inventory:" 20000
+    putStrLn ""
+    showInventory (inventory player) 0
+    putStr "Enter item index: "
+    index <- getChar
+    putStrLn "\n"
+
+    let option = charToNum index
+
+    -- Check if given output is valid
+    if option /= -1
+        then do
+            -- Get selected item
+            let item = selectItemInInventory (inventory player) option 0
+
+            -- Check if item is returned
+            if item /= (("N/A","N/A"),0.0)
+                then do
+                -- Ask to equip
+                let itemName = fst $ fst item
+                let text = "Would you like to equip " ++ itemName ++ "?\n"
+                slowTextRec text 20000
+                
+                -- User selects an option
+                setSGR [SetColor Foreground Dull Green]
+                slowTextRec "Press the Y key for yes.\n" 20000
+                setSGR []
+                setSGR [SetColor Foreground Dull Red]
+                slowTextRec "Press the N key for no.\n" 20000
+                setSGR []
+
+                putStr "Option: "
+                option <- getChar
+                putStrLn "\n"
+
+                -- Check if option is valid
+                if option == 'y' || option == 'n'
+                    then do
+                        if option == 'y'
+                            -- Equip item
+                            then do
+                                putStrLn "Item equiped!\n"
+                                let currentWeapon = weapon player
+
+                                -- Change player's spells' attack
+                                let newChar = changePlayerWeapon player item
+                                
+                                action x y newChar
+                        else do
+                            -- Do not equip item
+                            putStrLn "Item not equiped!\n"
+                            action x y player
+                            
+                else invalidOption x y player
+            -- Item is not found within array
+            else do
+                slowTextRec "Item not found within your inventory!\n" 20000
+                invalidOption x y player
+    else do
+        invalidOption x y player
+    
+    return ()
+
+-- Returns the selected item
+selectItemInInventory :: Bag -> Int -> Int -> Item
+selectItemInInventory [] _ _ = (("N/A", "N/A"), 0)
+selectItemInInventory (x:xs) index counter = do
+    if counter == index
+        then x
+    else
+        selectItemInInventory xs index (counter + 1)
+
+-- Tells the Player that the pressed key is invalid and closes inventory
+invalidOption :: X -> Y -> Character -> IO ()
+invalidOption x y player = do
+    setSGR [SetColor Foreground Vivid Red]
+    slowTextRec "Invalid option.\n" 20000
+    setSGR []
+    slowTextRec "You close your bag and continue your adventure.\n" 20000
+    action x y player
+
+-- Change player's attacked based on current and newweapon
+changePlayerWeapon :: Character -> Item -> Character
+changePlayerWeapon player item
+    -- New weapon has either more attack or less than the current one
+    | snd item > (snd $ weapon player) || snd item < (snd $ weapon player) = do
+        let newName = name player
+        let newHealth = maxHealth player
+        let newMaxHealth = maxHealth player
+        let newCrit = crit player
+        -- Add additional weapon damage to current attacks
+        let newAttacks = changeWeaponDamage (attacks player) 10 (snd $ weapon player) (snd item)
+        -- Put current weapon to bag
+        let updatedInventory = inventory player ++ [weapon player]
+        -- Put item from bag to hand and store the old item in the bag
+        let newInventory = moveItems updatedInventory item
+        let newWeapon = item
+        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
+
+        newChar
+    -- New weapon has equal attack to the currently equiped weapon
+    | otherwise = player
+    
+
+-- Changes the player's damage
+changeWeaponDamage :: Spells -> Attack -> Attack -> Attack -> Spells
+changeWeaponDamage [] _ _ _= []
+changeWeaponDamage (x:xs) spellDamage oldWeaponDmg newWeaponDmg = do
+    [(fst x, (snd x + (newWeaponDmg - oldWeaponDmg) * spellDamage))] ++ changeWeaponDamage xs (spellDamage + 5) oldWeaponDmg newWeaponDmg
+    
+-- Moves an item from hand to bag
+moveItems :: Bag -> Item -> Bag
+moveItems [] _ = []
+moveItems (x:xs) item 
+    | x == item = moveItems xs item
+    | otherwise = [x] ++ moveItems xs item
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
 -- Movement logic
 
 -- Ask which way to go
-movement :: X -> Y -> Character -> IO ()
-movement x y player = do
+action :: X -> Y -> Character -> IO ()
+action x y player = do
 
     -- Get user desired location
     putStr ("Action: ")
     actionInput <- getLine 
     putStrLn ""
 
-    let action = removeMaybe $ stringToMovement $ toUp actionInput
+    let currentAction = removeMaybe $ stringToAction $ toUp actionInput
 
     -- Check if input was valid
-    if action == Exit
-        then movement x y player
+    if currentAction == Exit
+        then action x y player
     else do
-        -- Move inside grid
-        let newCord = move action x y
+        -- Check if inventory was selected
+        if currentAction == Inventory
+            -- Display inventory
+            then inventoryOption player x y
         
-        -- Display a random move quote
-        randomMoveQuote (getRandomNumber 1 4) 20000
+        else do
+            -- Move inside grid
+            let newCord = move currentAction x y
+            
+            -- Display a random move quote
+            randomMoveQuote (getRandomNumber 1 4) 20000
 
-        -- Check what has happened to the player
-        let action = checkNextAction (fst newCord) (snd newCord)
+            -- Check what has happened to the player
+            let nextAction = checkNextAction (fst newCord) (snd newCord)
 
-        checkPlayerStatus action (fst newCord) (snd newCord) player
+            checkPlayerStatus nextAction (fst newCord) (snd newCord) player
 
     return ()
 
 -- Convert the String movement to a Maybe Movement data type
-stringToMovement :: String -> Maybe Action
-stringToMovement "North" = Just North
-stringToMovement "South" = Just South
-stringToMovement "East" = Just East
-stringToMovement "West" = Just West
-stringToMovement "Exit" = Just Exit
+stringToAction :: String -> Maybe Action
+stringToAction "North" = Just North
+stringToAction "South" = Just South
+stringToAction "East" = Just East
+stringToAction "West" = Just West
+stringToAction "Exit" = Just Exit
+stringToAction "Inventory" = Just Inventory
 -- If player misspelt a word
-stringToMovement _ = Nothing
+stringToAction _ = Nothing
 
 -- Remove Maybe from Movement data type
 removeMaybe :: Maybe Action -> Action
 removeMaybe Nothing = Exit
-removeMaybe (Just dir) = dir
+removeMaybe (Just action) = action
 
 -- Move position within grid
 move :: Action -> X -> Y -> Position
@@ -314,32 +456,32 @@ checkPlayerStatus status x y player
         let enemy = getEnemy (getRandomNumber 1 3)
         healthStatus player enemy x y
     | status == Boss = do
-        let boss = Character "Pit Lord" [(("1) Slam", "Slams the opponent."), 10.00), (("2) Fel Fire Nova", "Emitting a steady pulse of fel fire, dealing damage to the player."), 50.00), (("3) Overpower", "Instantly overpower the enemy, causing high weapon damage."), 70.00)] 3.0 1000.00 1000.00
+        let boss = Character "Pit Lord" [(("1) Slam", "Slams the opponent."), 10.00), (("2) Fel Fire Nova", "Emitting a steady pulse of fel fire, dealing damage to the player."), 50.00), (("3) Overpower", "Instantly overpower the enemy, causing high weapon damage."), 70.00)] 3.0 1000.00 1000.00 [(("Gorehowl", "The mighty weapon of the Hellscream family"), 10)] (("Gorehowl", "The mighty weapon of the Hellscream family"), 10)
         healthStatus player boss x y
     -- Check if player has reached North map end 
     | status == NorthBack = do
         endOfMap
-        movement x (incPos y) player
+        action x (incPos y) player
     -- Check if player has reached South map end
     | status == SouthBack = do
         endOfMap
-        movement x (decPos y) player
+        action x (decPos y) player
     -- Check if player has bumped into a Fel river
     | status == FelDrink = felBlood player x y
     -- Check if player has reached Fel lava - go back (x - 1, y)
     | status == FelLava = do
         felLava
-        movement (decPos x) y player
+        action (decPos x) y player
     -- Check if player has reached the initial Fel lava - (0, 0) - go to (0, 1)
     | status == FelLavaStart = do
         endOfMap
-        movement x (incPos y) player
+        action x (incPos y) player
     -- Check if player has reached West map end
     | status == WestBack = do
         endOfMap
-        movement (incPos x) y player
+        action (incPos x) y player
     -- Check if player is alive and can freely move
-    | status == Walk = movement x y player
+    | status == Walk = action x y player
     -- Check if player has to fight an enemy
     | status == Combat = do
         let enemy = getEnemy (getRandomNumber 1 3)
@@ -355,28 +497,28 @@ checkPlayerStatus status x y player
     -- Check if player has bumped into a corpse
     | status == Corpse = do
         corpse
-        movement x y player
+        action x y player
     -- Check if player is on the right side of the Fel Fire wall
     | status == FelFireWallRight = do
         felFireWallBump
-        movement (incPos x) y player
+        action (incPos x) y player
     -- Check if player is on the left side of the Fel Fire wall
     | status == FelFireWallLeft = do
         felFireWallBump
-        movement (decPos x) y player
+        action (decPos x) y player
     -- Check if player has bumped into a person
     | status == Person = do
         person (getRandomNumber 1 3) 20000
-        movement x y player
+        action x y player
     -- Check if player has finished the game
     | status == Finish = finish
 
 -- Generates a mob for the player to fight
 getEnemy :: Int -> Character
 getEnemy n 
-    | n == 1 = Character "Felguard" [(("1) Axe Toss", "The felguard hurls his axe"), 30.00), (("2) Legion Strike", "A sweeping attack that does damage"), 35.00), (("3) Overpower", "Charge the player and deal damage."), 40.00)] 1 300.00 300.00
-    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00
-    | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00
+    | n == 1 = Character "Felguard" [(("1) Axe Toss", "The felguard hurls his axe"), 30.00), (("2) Legion Strike", "A sweeping attack that does damage"), 35.00), (("3) Overpower", "Charge the player and deal damage."), 40.00)] 1 300.00 300.00 [(("Felguard Axe", "A mighty axe, forged by Sargeras himself."), 3.1)] (("Felguard Axe", "A mighty axe, forged by Sargeras himself."), 3.1)
+    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [(("N/A", "N/A"), 1.0)] (("N/A", "N/A"), 1.0)
+    | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00 [(("N/A", "N/A"), 1.0)] (("N/A", "N/A"), 1.0)
 
 -- Teleport player
 teleport :: Character -> X -> Y -> IO ()
@@ -413,14 +555,16 @@ battleCry player x y = do
     let newMaxHealth = maxHealth player
     let newCrit = crit player
     let newAttacks = map (\x -> ((fst x), ((snd x) + ((snd x) * 0.05)))) (attacks player)
-    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth
+    let newInventory = inventory player
+    let newWeapon = weapon player
+    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
 
     dialogue "Samuro" "For the Burning Blade!\n" 20000
     dialogue "Battle cry" "Increase overall damage by 0.5% for all of your spells!\n" 20000
     slowTextRec "Your wounds magically heal faster. You have been restored to maximum health.\n" 20000
 
     -- Move character
-    movement x y newChar
+    action x y newChar
 
 -- Explains to the user what Fel Blood does.
 felBlood :: Character -> X -> Y -> IO ()
@@ -446,15 +590,17 @@ felChoice player x y choice
         let newMaxHealth = maxHealth player - (maxHealth player * 0.3)
         -- Decrease current health
         let newHealth = checkHealth (maxHealth player) (health player) newMaxHealth
-        
-        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth
+        let newInventory = inventory player
+        let newWeapon = weapon player
+
+        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
         setSGR [SetColor Foreground Vivid Green]
         slowTextRec "You have accepted Gul'dan's offer. Now you feel stronger!\n" 20000
 
-        movement x y newChar
+        action x y newChar
     | choice == "no" = do
         slowTextRec "You have rejected Gul'dan's gift.\n" 20000
-        movement x y player
+        action x y player
     | otherwise = felBlood player x y
 
 -- Check where the player's health is
@@ -465,9 +611,9 @@ checkHealth old current new
     -- check if player's current health is lesser or equal to the new health
     | new >= current = current
 
+-- Increase player's health 3 times
 narusGift :: Character -> X -> Y -> IO ()
 narusGift player x y = do
-
     let newName = name player
     let newCrit = crit player 
     let newAttacks = attacks player
@@ -475,8 +621,10 @@ narusGift player x y = do
     let newMaxHealth = maxHealth player * 3
     -- Heal player to maximum health
     let newHealth = newMaxHealth
-    
-    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth
+    let newInventory = inventory player
+    let newWeapon = weapon player
+
+    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
     -- Naru's gift info
     dialogue "Naru's gift" "Heals you and tripples your health.\n" 20000
-    movement x y newChar
+    action x y newChar

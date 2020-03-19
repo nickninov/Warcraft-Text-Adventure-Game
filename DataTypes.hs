@@ -17,22 +17,24 @@ type Description = String
 type Option = Char
 type Spells = [((Name, Description), Attack)]
 type AttackStatus = (Bool, Attack)
-type Item = (Name, Attack)
-type Inventory = [Item]
+type Item = ((Name,Description), Attack)
+type Bag = [Item]
 
 -- Data Types
 
 -- Action data type - actions that the user can do
-data Action = South | East | West | North | Exit
+data Action = South | East | West | North | Inventory| Exit
     deriving (Show, Read, Eq)
 
 -- Character data type 
 data Character = Character {
-            name :: String,
+            name :: Name,
             attacks :: Spells,
             crit :: Crit,
             health :: Health,
-            maxHealth :: Health
+            maxHealth :: Health,
+            inventory :: Bag,
+            weapon :: Item
         } deriving (Show, Read, Eq)
 {- 
     Status data type - is the character dead, alive, in combat or in a room.

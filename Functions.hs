@@ -31,3 +31,18 @@ toUp (x:xs) = (toUpper x) : xs
 -- Generate a random number given the start and end value - Remove IO type
 getRandomNumber :: Int -> Int -> Int
 getRandomNumber start end = unsafePerformIO $ getStdRandom $ randomR (start, end)
+
+-- Convert char to number
+charToNum :: Char -> Int
+charToNum '0' = 0
+charToNum '1' = 1
+charToNum '2' = 2
+charToNum '3' = 3
+charToNum '4' = 4
+charToNum '5' = 5
+charToNum '6' = 6
+charToNum '7' = 7
+charToNum '8' = 8
+charToNum '9' = 9
+charToNum _ = -1
+    
