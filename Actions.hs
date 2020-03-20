@@ -23,6 +23,8 @@ healthStatus player enemy x y
     -- Enemy has been slain
     | health player > 0 && health enemy <= 0 = do 
         killedEnemy player enemy x y
+        -- Loot enemy
+        -- lootEnemy player enemy
         battleCry player x y
     -- Player has been slain
     | health player <= 0 && health enemy > 0 = killedByEnemy enemy
@@ -286,7 +288,6 @@ changePlayerWeapon player item
     -- New weapon has equal attack to the currently equiped weapon
     | otherwise = player
     
-
 -- Changes the player's damage
 changeWeaponDamage :: Spells -> Attack -> Attack -> Attack -> Spells
 changeWeaponDamage [] _ _ _= []
@@ -299,6 +300,15 @@ moveItems [] _ = []
 moveItems (x:xs) item 
     | x == item = moveItems xs item
     | otherwise = [x] ++ moveItems xs item
+
+-- Take the enemies items
+lootEnemy :: Character -> Character -> IO()
+lootEnemy player enemy = do
+    let time = 20000
+    slowTextRec "You inspect the enemy.\n" time
+    
+    slowTextRec "Inventory: \n" time
+    showInventory (inventory enemy) 0
 
 
 -------------------------------------------------------------------------------
@@ -517,8 +527,8 @@ checkPlayerStatus status x y player
 getEnemy :: Int -> Character
 getEnemy n 
     | n == 1 = Character "Felguard" [(("1) Axe Toss", "The felguard hurls his axe"), 30.00), (("2) Legion Strike", "A sweeping attack that does damage"), 35.00), (("3) Overpower", "Charge the player and deal damage."), 40.00)] 1 300.00 300.00 [(("Felguard Axe", "A mighty axe, forged by Sargeras himself."), 3.1)] (("Felguard Axe", "A mighty axe, forged by Sargeras himself."), 3.1)
-    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [(("N/A", "N/A"), 1.0)] (("N/A", "N/A"), 1.0)
-    | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00 [(("N/A", "N/A"), 1.0)] (("N/A", "N/A"), 1.0)
+    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [(("Fel sword", "A tiny sword full of anger."), 0.05)] (("Fel sword", "A tiny sword full of anger"), 0.05)
+    | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00 [(("Void claws", "Sharp and deadly claws."), 2.0)] (("Void claws", "Sharp and deadly claws."), 2.0)
 
 -- Teleport player
 teleport :: Character -> X -> Y -> IO ()

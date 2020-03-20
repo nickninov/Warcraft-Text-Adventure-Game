@@ -20,6 +20,7 @@ type AttackStatus = (Bool, Attack)
 type Item = ((Name,Description), Attack)
 type Bag = [Item]
 
+
 -- Data Types
 
 -- Action data type - actions that the user can do
@@ -28,14 +29,17 @@ data Action = South | East | West | North | Inventory| Exit
 
 -- Character data type 
 data Character = Character {
-            name :: Name,
-            attacks :: Spells,
-            crit :: Crit,
-            health :: Health,
-            maxHealth :: Health,
-            inventory :: Bag,
-            weapon :: Item
-        } deriving (Show, Read, Eq)
+    name :: Name,
+    attacks :: Spells,
+    crit :: Crit,
+    health :: Health,
+    maxHealth :: Health,
+    inventory :: Bag,
+    weapon :: Item
+} deriving (Show, Read, Eq)
+
+
+
 {- 
     Status data type - is the character dead, alive, in combat or in a room.
     Dead - the player is dead

@@ -44,5 +44,4 @@ charToNum '6' = 6
 charToNum '7' = 7
 charToNum '8' = 8
 charToNum '9' = 9
-charToNum _ = -1
-    
+charToNum _ = -1    
