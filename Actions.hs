@@ -24,8 +24,11 @@ healthStatus player enemy x y
     | health player > 0 && health enemy <= 0 = do 
         killedEnemy player enemy x y
         -- Loot enemy
-        -- lootEnemy player enemy
-        battleCry player x y
+        let text = "You see something shining from " ++ (name enemy) ++ ".\n"
+        slowTextRec text 20000
+
+        lootEnemy player enemy x y
+        
     -- Player has been slain
     | health player <= 0 && health enemy > 0 = killedByEnemy enemy
     -- Both player and enemy died
@@ -144,8 +147,9 @@ attackEnemy playerAttack enemy = newEnemy
         maxHP = maxHealth enemy
         newInventory = inventory enemy
         newWeapon = weapon enemy
+        newGold = gold enemy
 
-        newEnemy = Character newName attack critical enemyHP maxHP newInventory newWeapon
+        newEnemy = Character newName attack critical enemyHP maxHP newInventory newWeapon newGold
 
 -- Attacks the player
 attackPlayer :: Attack -> Character -> Character
@@ -159,8 +163,9 @@ attackPlayer enemyAttack player = newPlayer
         maxHP = maxHealth player
         newInventory = inventory player
         newWeapon = weapon player
+        newGold = gold player
 
-        newPlayer = Character newName attack critical playerHP maxHP newInventory newWeapon
+        newPlayer = Character newName attack critical playerHP maxHP newInventory newWeapon newGold
 
 -- Critical chance calculation
 shouldCrit :: Int -> Int -> Bool
@@ -185,9 +190,17 @@ critChance status character dmg
 -- Display inventory and options
 inventoryOption :: Character -> X -> Y -> IO()
 inventoryOption player x y = do
+    setSGR [SetColor Foreground Dull Yellow]
+    let text = name player ++ "'s Gold: " ++ (show $ gold player) ++ "\n"
+    -- Display gold
+    slowTextRec text 20000
+    setSGR []
+    -- Display inventory
     slowTextRec "Inventory:" 20000
     putStrLn ""
     showInventory (inventory player) 0
+
+    dialogue "Exit" "Press a non numeric character.\n" 20000
     putStr "Enter item index: "
     index <- getChar
     putStrLn "\n"
@@ -201,56 +214,57 @@ inventoryOption player x y = do
             let item = selectItemInInventory (inventory player) option 0
 
             -- Check if item is returned
-            if item /= (("N/A","N/A"),0.0)
+            if item /= Item "N/A" "N/A" 0.0 0
                 then do
-                -- Ask to equip
-                let itemName = fst $ fst item
-                let text = "Would you like to equip " ++ itemName ++ "?\n"
-                slowTextRec text 20000
+                    -- Ask to equip
+                    let itemName = weaponName item
+                    let text = "Would you like to equip " ++ itemName ++ "?\n"
+                    slowTextRec text 20000
                 
-                -- User selects an option
-                setSGR [SetColor Foreground Dull Green]
-                slowTextRec "Press the Y key for yes.\n" 20000
-                setSGR []
-                setSGR [SetColor Foreground Dull Red]
-                slowTextRec "Press the N key for no.\n" 20000
-                setSGR []
+                    -- User selects an option
+                    setSGR [SetColor Foreground Dull Green]
+                    slowTextRec "Press the Y key for yes.\n" 20000
+                    setSGR []
+                    setSGR [SetColor Foreground Dull Red]
+                    slowTextRec "Press the N key for no.\n" 20000
+                    setSGR []
 
-                putStr "Option: "
-                option <- getChar
-                putStrLn "\n"
+                    putStr "Option: "
+                    option <- getChar
+                    putStrLn "\n"
 
-                -- Check if option is valid
-                if option == 'y' || option == 'n'
-                    then do
-                        if option == 'y'
+                    -- Check if option is valid
+                    if option == 'y' || option == 'n'
+                        then do
+                            if option == 'y'
                             -- Equip item
-                            then do
-                                putStrLn "Item equiped!\n"
-                                let currentWeapon = weapon player
+                                then do
+                                    putStrLn "Item equiped!\n"
+                                    let currentWeapon = weapon player
 
-                                -- Change player's spells' attack
-                                let newChar = changePlayerWeapon player item
-                                
-                                action x y newChar
-                        else do
+                                    -- Change player's spells' attack
+                                    let newChar = changePlayerWeapon player item
+                                    
+                                    battleCry player x y
+                            else do
                             -- Do not equip item
-                            putStrLn "Item not equiped!\n"
-                            action x y player
-                            
-                else invalidOption x y player
-            -- Item is not found within array
+                                putStrLn "Item not equiped!\n"
+                                battleCry player x y
+                    -- The given option was invalid
+                    else invalidOption x y player
+                -- Item is not found within array
             else do
                 slowTextRec "Item not found within your inventory!\n" 20000
                 invalidOption x y player
     else do
-        invalidOption x y player
+        slowTextRec "You close your bag and continue your adventure.\n" 20000
+        battleCry player x y
     
     return ()
 
 -- Returns the selected item
 selectItemInInventory :: Bag -> Int -> Int -> Item
-selectItemInInventory [] _ _ = (("N/A", "N/A"), 0)
+selectItemInInventory [] _ _ = Item "N/A" "N/A" 0.0 0
 selectItemInInventory (x:xs) index counter = do
     if counter == index
         then x
@@ -264,25 +278,27 @@ invalidOption x y player = do
     slowTextRec "Invalid option.\n" 20000
     setSGR []
     slowTextRec "You close your bag and continue your adventure.\n" 20000
-    action x y player
+    battleCry player x y
 
 -- Change player's attacked based on current and newweapon
 changePlayerWeapon :: Character -> Item -> Character
 changePlayerWeapon player item
     -- New weapon has either more attack or less than the current one
-    | snd item > (snd $ weapon player) || snd item < (snd $ weapon player) = do
+    | weaponDamage item > (weaponDamage $ weapon player) || weaponDamage item < (weaponDamage $ weapon player) = do
         let newName = name player
         let newHealth = maxHealth player
         let newMaxHealth = maxHealth player
         let newCrit = crit player
         -- Add additional weapon damage to current attacks
-        let newAttacks = changeWeaponDamage (attacks player) 10 (snd $ weapon player) (snd item)
+        let newAttacks = changeWeaponDamage (attacks player) 10 (weaponDamage $ weapon player) (weaponDamage item)
         -- Put current weapon to bag
         let updatedInventory = inventory player ++ [weapon player]
         -- Put item from bag to hand and store the old item in the bag
         let newInventory = moveItems updatedInventory item
         let newWeapon = item
-        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
+        let newGold = gold player
+
+        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
 
         newChar
     -- New weapon has equal attack to the currently equiped weapon
@@ -294,7 +310,7 @@ changeWeaponDamage [] _ _ _= []
 changeWeaponDamage (x:xs) spellDamage oldWeaponDmg newWeaponDmg = do
     [(fst x, (snd x + (newWeaponDmg - oldWeaponDmg) * spellDamage))] ++ changeWeaponDamage xs (spellDamage + 5) oldWeaponDmg newWeaponDmg
     
--- Moves an item from hand to bag
+-- Remove selected item from bag
 moveItems :: Bag -> Item -> Bag
 moveItems [] _ = []
 moveItems (x:xs) item 
@@ -302,13 +318,189 @@ moveItems (x:xs) item
     | otherwise = [x] ++ moveItems xs item
 
 -- Take the enemies items
-lootEnemy :: Character -> Character -> IO()
-lootEnemy player enemy = do
+lootEnemy :: Character -> Character -> X -> Y -> IO()
+lootEnemy player enemy x y = do
     let time = 20000
-    slowTextRec "You inspect the enemy.\n" time
+
+    let text = "You inspect "++ (name enemy) ++".\n"
+    slowTextRec text time
     
-    slowTextRec "Inventory: \n" time
-    showInventory (inventory enemy) 0
+    setSGR [SetColor Foreground Dull Yellow]
+    let text = name enemy ++ "'s Gold: " ++ (show $ gold enemy) ++ "\n"
+    -- Display enemy's gold
+    slowTextRec text 20000
+    setSGR []
+
+    -- Check enemy's inventory
+    if (length $ inventory enemy) > 0
+        then do
+        -- Show enemy's inventory
+        slowTextRec "Inventory: \n" time
+        showInventory (inventory enemy) 0
+        -- Options
+        setSGR [SetColor Foreground Dull Yellow]
+        slowTextRec "Type gold to take the enemy's gold.\n" time
+        setSGR [SetColor Foreground Dull Green]
+        slowTextRec "Type item to take an enemy's item.\n" time
+        setSGR []
+        slowTextRec "Type leave to stop inspecting the corpse. \n" time
+
+        putStr "Loot: "
+        option <- getLine
+        putStrLn ""
+
+        lootOption player enemy option x y
+    
+    -- Inventory is empty
+    else do
+        -- Check if enemy has gold
+        if gold enemy > 0
+            then do
+            setSGR [SetColor Foreground Dull Red]
+            slowTextRec "Inventory is empty.\n" time
+            setSGR []
+
+            setSGR [SetColor Foreground Dull Yellow]
+            slowTextRec "Type gold to take the gold.\n" time
+            setSGR []
+            slowTextRec "Type leave to stop inspecting the corpse. \n" time
+
+            putStr "Loot: "
+            option <- getLine
+            putStrLn ""
+            
+            lootEmptyInventory player enemy option x y
+        -- Enemy neither has gold nor items
+        else do
+            setSGR [SetColor Foreground Dull Red]
+            slowTextRec "Inventory is empty! \n\nEnemy does not have gold!\n" time
+            setSGR []
+            battleCry player x y
+
+-- What to do if enemy's inventory is empty
+lootEmptyInventory :: Character -> Character -> String -> X -> Y -> IO ()
+lootEmptyInventory player enemy option x y
+    | option == "gold" = lootGold player enemy x y
+    | option == "leave" = do
+        slowTextRec "You leave the dead body to rot and continue your adventure.\n" 20000
+        battleCry player x y
+    | otherwise = lootEnemy player enemy x y
+
+-- What to do after user's input
+lootOption :: Character -> Character -> String -> X -> Y -> IO ()
+lootOption player enemy option x y
+    -- Take enemy's gold
+    | option == "gold" = lootGold player enemy x y
+    -- Take a specific item from the enemy
+    | option == "item" = lootItem player enemy x y
+    -- Leave enemy's corpse
+    | option == "leave" = do
+        slowTextRec "You leave the dead body to rot and continue your adventure.\n" 20000
+        battleCry player x y
+    | otherwise = lootEnemy player enemy x y
+
+-- Take enemie's gold
+lootGold :: Character -> Character -> X -> Y -> IO ()
+lootGold player enemy x y
+    -- Enemy has gold
+    | gold enemy > 0 = do
+        -- Update player
+        let newName = name player
+        let newHealth = health player
+        let newMaxHealth = maxHealth player
+        let newCrit = crit player
+        let newAttacks = attacks player
+        let newInventory = inventory player
+        let newWeapon = weapon player
+        -- Update gold
+        let newGold = gold player + gold enemy
+
+        let newPlayer = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+        
+        -- Update enemy
+        let newName = name enemy
+        let newHealth = maxHealth enemy
+        let newMaxHealth = maxHealth enemy
+        let newCrit = crit enemy
+        let newAttacks = attacks enemy
+        let newInventory = inventory enemy
+        let newWeapon = weapon enemy
+        -- Update gold
+        let newGold = 0
+
+        let newEnemy = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+        
+        let text = "You take " ++ (name enemy) ++ "'s gold.\n"
+        slowTextRec text 20000
+
+        lootEnemy newPlayer newEnemy x y
+    -- Enemy does not have gold
+    | gold enemy <= 0 = do
+        let text = (name enemy) ++ " has no gold.\n"
+        slowTextRec text 20000
+        lootEnemy player enemy x y
+
+-- Loot specific item
+lootItem :: Character -> Character -> X -> Y -> IO ()
+lootItem player enemy x y = do
+    -- Check if inventory is full
+    if (length $ inventory player) <= 9
+        then do
+            putStr "Select item index: "
+            option <- getChar
+            let index = charToNum option
+            putStrLn "\n"
+            -- Check if the index is valid
+            if index /= -1
+                then do
+                    let item = selectItemInInventory (inventory enemy) index 0
+
+                    -- Check if item exists in enemy's inventory
+                    if item /= (Item "N/A" "N/A" 0.0 0)
+                        -- Put item in player's inventory
+                        then do
+                            -- Update player
+                            let newName = name player
+                            let newHealth = health player
+                            let newMaxHealth = maxHealth player
+                            let newCrit = crit player
+                            let newAttacks = attacks player
+                            -- Update inventory
+                            let newInventory = inventory player ++ [item]
+                            let newWeapon = weapon player
+                            let newGold = gold player 
+
+                            let newPlayer = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+
+                            -- Update enemy
+                            let newName = name enemy
+                            let newHealth = maxHealth enemy
+                            let newMaxHealth = maxHealth enemy
+                            let newCrit = crit enemy
+                            let newAttacks = attacks enemy
+                            -- Update inventory
+                            let newInventory = moveItems (inventory enemy) item
+                            let newWeapon = weapon enemy
+                            let newGold = gold enemy
+
+                            let newEnemy = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+
+                            let text = "You loot: " ++ (weaponName item) ++ ".\n"
+                            slowTextRec text 20000
+                            putStrLn ""
+                            lootEnemy newPlayer newEnemy x y
+
+                    -- Item does not exist
+                    else 
+                        invalidOption x y player
+            -- Invalid option
+            else do
+                invalidOption x y player
+    else do
+        setSGR [SetColor Foreground Dull Red]
+        slowTextRec "Inventory is full!" 20000
+        setSGR []
+        lootEnemy player enemy x y
 
 
 -------------------------------------------------------------------------------
@@ -341,7 +533,8 @@ action x y player = do
         -- Check if inventory was selected
         if currentAction == Inventory
             -- Display inventory
-            then inventoryOption player x y
+            then 
+                inventoryOption player x y
         
         else do
             -- Move inside grid
@@ -466,7 +659,7 @@ checkPlayerStatus status x y player
         let enemy = getEnemy (getRandomNumber 1 3)
         healthStatus player enemy x y
     | status == Boss = do
-        let boss = Character "Pit Lord" [(("1) Slam", "Slams the opponent."), 10.00), (("2) Fel Fire Nova", "Emitting a steady pulse of fel fire, dealing damage to the player."), 50.00), (("3) Overpower", "Instantly overpower the enemy, causing high weapon damage."), 70.00)] 3.0 1000.00 1000.00 [(("Gorehowl", "The mighty weapon of the Hellscream family"), 10)] (("Gorehowl", "The mighty weapon of the Hellscream family"), 10)
+        let boss = Character "Pit Lord" [(("1) Slam", "Slams the opponent."), 10.00), (("2) Fel Fire Nova", "Emitting a steady pulse of fel fire, dealing damage to the player."), 50.00), (("3) Overpower", "Instantly overpower the enemy, causing high weapon damage."), 70.00)] 3.0 1000.00 1000.00 [ Item "Gorehowl" "The mighty weapon of the Hellscream family" 10.00 1000] (Item "Gorehowl" "The mighty weapon of the Hellscream family" 10.00 1000) 100
         healthStatus player boss x y
     -- Check if player has reached North map end 
     | status == NorthBack = do
@@ -526,9 +719,9 @@ checkPlayerStatus status x y player
 -- Generates a mob for the player to fight
 getEnemy :: Int -> Character
 getEnemy n 
-    | n == 1 = Character "Felguard" [(("1) Axe Toss", "The felguard hurls his axe"), 30.00), (("2) Legion Strike", "A sweeping attack that does damage"), 35.00), (("3) Overpower", "Charge the player and deal damage."), 40.00)] 1 300.00 300.00 [(("Felguard Axe", "A mighty axe, forged by Sargeras himself."), 3.1)] (("Felguard Axe", "A mighty axe, forged by Sargeras himself."), 3.1)
-    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [(("Fel sword", "A tiny sword full of anger."), 0.05)] (("Fel sword", "A tiny sword full of anger"), 0.05)
-    | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00 [(("Void claws", "Sharp and deadly claws."), 2.0)] (("Void claws", "Sharp and deadly claws."), 2.0)
+    | n == 1 = Character "Felguard" [(("1) Axe Toss", "The felguard hurls his axe"), 30.00), (("2) Legion Strike", "A sweeping attack that does damage"), 35.00), (("3) Overpower", "Charge the player and deal damage."), 40.00)] 1 300.00 300.00 [Item "Felguard Axe" "A mighty axe, forged by Sargeras himself." 3.1 20] (Item "Felguard Axe" "A mighty axe, forged by Sargeras himself." 3.1 20) 30
+    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [Item "Fel sword" "A tiny sword full of anger." 0.05 5] (Item "Fel sword" "A tiny sword full of anger." 0.05 5) 10
+    | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00 [Item "Void claws" "Sharp and deadly claws." 2.0 15] (Item "Void claws" "Sharp and deadly claws." 2.0 15) 20
 
 -- Teleport player
 teleport :: Character -> X -> Y -> IO ()
@@ -567,8 +760,9 @@ battleCry player x y = do
     let newAttacks = map (\x -> ((fst x), ((snd x) + ((snd x) * 0.05)))) (attacks player)
     let newInventory = inventory player
     let newWeapon = weapon player
-    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
-
+    let newGold = gold player
+    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+    
     dialogue "Samuro" "For the Burning Blade!\n" 20000
     dialogue "Battle cry" "Increase overall damage by 0.5% for all of your spells!\n" 20000
     slowTextRec "Your wounds magically heal faster. You have been restored to maximum health.\n" 20000
@@ -602,8 +796,9 @@ felChoice player x y choice
         let newHealth = checkHealth (maxHealth player) (health player) newMaxHealth
         let newInventory = inventory player
         let newWeapon = weapon player
+        let newGold = gold player
 
-        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
+        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
         setSGR [SetColor Foreground Vivid Green]
         slowTextRec "You have accepted Gul'dan's offer. Now you feel stronger!\n" 20000
 
@@ -633,8 +828,8 @@ narusGift player x y = do
     let newHealth = newMaxHealth
     let newInventory = inventory player
     let newWeapon = weapon player
-
-    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon
+    let newGold = gold player
+    let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
     -- Naru's gift info
     dialogue "Naru's gift" "Heals you and tripples your health.\n" 20000
     action x y newChar

@@ -17,8 +17,9 @@ type Description = String
 type Option = Char
 type Spells = [((Name, Description), Attack)]
 type AttackStatus = (Bool, Attack)
-type Item = ((Name,Description), Attack)
+-- type Item = ((Name,Description), Attack)
 type Bag = [Item]
+type Gold = Int
 
 
 -- Data Types
@@ -35,10 +36,17 @@ data Character = Character {
     health :: Health,
     maxHealth :: Health,
     inventory :: Bag,
-    weapon :: Item
+    weapon :: Item,
+    gold :: Gold
 } deriving (Show, Read, Eq)
 
-
+-- Item data type
+data Item = Item {
+    weaponName :: Name,
+    description :: Description,
+    weaponDamage :: Attack,
+    money :: Gold
+} deriving (Show, Read, Eq)
 
 {- 
     Status data type - is the character dead, alive, in combat or in a room.

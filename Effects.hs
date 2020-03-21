@@ -254,13 +254,15 @@ showInventory :: Bag -> Int -> IO ()
 showInventory [] _ = return ()
 showInventory (x:xs) counter = do
     let strCounter = show counter
-    let strSpellName = fst $ fst x
+    let strSpellName = weaponName x
     let text1 = strCounter ++ ") " ++ strSpellName ++ ":"
     
     slowTextRec text1 20000
     
     setSGR [SetColor Foreground Vivid Yellow]
-    let text2 = (snd $ fst x) ++ " Deals " ++ (show $ round $ snd x) ++ " weapon damage.\n"
+    let text2 = (weaponName x) ++ " Deals " ++ (show $ round $ weaponDamage x) ++ " weapon damage."
     slowTextRec text2 20000
     setSGR []
+    let text3 = "Price: " ++ (show $ money x) ++ " Gold\n"
+    slowTextRec text3 20000
     showInventory xs (counter + 1)
