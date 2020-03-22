@@ -18,7 +18,6 @@ healthStatus :: Character -> Character -> X -> Y -> IO ()
 healthStatus player enemy x y
     -- Both player and enemy are alive
     | health player > 0 && health enemy > 0 = do
-        clear
         combat player enemy x y
     -- Enemy has been slain
     | health player > 0 && health enemy <= 0 = do 
@@ -85,31 +84,29 @@ combat player enemy x y = do
             putStr $ name player
             putStr ": "
             print $ round $ enemyOption
-            putStrLn "\n"
+            putStrLn ""
 
             -- Check characters' health
             healthStatus newPlayerStats newEnemyStats x y
     
     -- Unsuccessful attack - enemy attacks
-    else
-        do
-            clear
-            punishmentText enemy
-            -- Check if enemy should crit
-            let critStatusEnemy = shouldCrit (getRandomNumber 1 50) (getRandomNumber 51 100)
-            let dmgEnemy = critChance critStatusEnemy enemy enemyOption
+    else do
+        punishmentText enemy
+        -- Check if enemy should crit
+        let critStatusEnemy = shouldCrit (getRandomNumber 1 50) (getRandomNumber 51 100)
+        let dmgEnemy = critChance critStatusEnemy enemy enemyOption
 
-            -- Deal damage to player
-            setSGR [SetColor Foreground Vivid Red]
-            let newPlayerStats = attackPlayer enemyOption player
-            putStr "Damage dealt to "
-            putStr $ name player
-            putStr ": "
-            print $ round $ enemyOption
-            putStrLn "\n"
-            setSGR []
-            -- Check characters' health
-            healthStatus newPlayerStats enemy x y
+        -- Deal damage to player
+        setSGR [SetColor Foreground Vivid Red]
+        let newPlayerStats = attackPlayer enemyOption player
+        putStr "Damage dealt to "
+        putStr $ name player
+        putStr ": "
+        print $ round $ enemyOption
+        putStrLn "\n"
+        setSGR []
+        -- Check characters' health
+        healthStatus newPlayerStats enemy x y
     return ()
 
 -- Shows the player the spells and their damage
@@ -205,13 +202,13 @@ inventoryOption player x y = do
     index <- getChar
     putStrLn "\n"
 
-    let option = charToNum index
+    let numOption = charToNum index
 
     -- Check if given output is valid
-    if option /= -1
+    if numOption /= -1
         then do
             -- Get selected item
-            let item = selectItemInInventory (inventory player) option 0
+            let item = selectItemInInventory (inventory player) numOption 0
 
             -- Check if item is returned
             if item /= Item "N/A" "N/A" 0.0 0
@@ -243,22 +240,32 @@ inventoryOption player x y = do
                                     let currentWeapon = weapon player
 
                                     -- Change player's spells' attack
-                                    let newChar = changePlayerWeapon player item
+                                    let newChar = changePlayerWeapon player item numOption
                                     
-                                    battleCry player x y
+                                    action x y newChar
                             else do
                             -- Do not equip item
                                 putStrLn "Item not equiped!\n"
-                                battleCry player x y
+                                action x y player
                     -- The given option was invalid
-                    else invalidOption x y player
-                -- Item is not found within array
+                    else do
+                        setSGR [SetColor Foreground Vivid Red]
+                        slowTextRec "Invalid option.\n" 20000
+                        setSGR []
+                        slowTextRec "You close your bag and continue your adventure.\n" 20000
+
+                        action x y player
+                -- Item is not found within list
             else do
+                setSGR [SetColor Foreground Vivid Red]
                 slowTextRec "Item not found within your inventory!\n" 20000
-                invalidOption x y player
+                setSGR []
+                slowTextRec "You close your bag and continue your adventure.\n" 20000
+
+                action x y player
     else do
         slowTextRec "You close your bag and continue your adventure.\n" 20000
-        battleCry player x y
+        action x y player
     
     return ()
 
@@ -281,10 +288,10 @@ invalidOption x y player = do
     battleCry player x y
 
 -- Change player's attacked based on current and newweapon
-changePlayerWeapon :: Character -> Item -> Character
-changePlayerWeapon player item
+changePlayerWeapon :: Character -> Item -> Int -> Character
+changePlayerWeapon player item numOption
     -- New weapon has either more attack or less than the current one
-    | weaponDamage item > (weaponDamage $ weapon player) || weaponDamage item < (weaponDamage $ weapon player) = do
+    | weaponDamage item >= (weaponDamage $ weapon player) || weaponDamage item <= (weaponDamage $ weapon player) = do
         let newName = name player
         let newHealth = maxHealth player
         let newMaxHealth = maxHealth player
@@ -294,7 +301,8 @@ changePlayerWeapon player item
         -- Put current weapon to bag
         let updatedInventory = inventory player ++ [weapon player]
         -- Put item from bag to hand and store the old item in the bag
-        let newInventory = moveItems updatedInventory item
+        let newInventory = moveItemsPlayer updatedInventory numOption 0
+        
         let newWeapon = item
         let newGold = gold player
 
@@ -310,13 +318,19 @@ changeWeaponDamage [] _ _ _= []
 changeWeaponDamage (x:xs) spellDamage oldWeaponDmg newWeaponDmg = do
     [(fst x, (snd x + (newWeaponDmg - oldWeaponDmg) * spellDamage))] ++ changeWeaponDamage xs (spellDamage + 5) oldWeaponDmg newWeaponDmg
     
--- Remove selected item from bag
-moveItems :: Bag -> Item -> Bag
-moveItems [] _ = []
-moveItems (x:xs) item 
-    | x == item = moveItems xs item
-    | otherwise = [x] ++ moveItems xs item
+-- Remove selected item from bag - enemy
+moveItemsEnemy :: Bag -> Item -> Bag
+moveItemsEnemy [] _ = []
+moveItemsEnemy (x:xs) item
+    | x == item = moveItemsEnemy xs item
+    | otherwise = [x] ++ moveItemsEnemy xs item
 
+moveItemsPlayer :: Bag -> Int -> Int -> Bag
+moveItemsPlayer [] _ _ = []
+moveItemsPlayer (x:xs) numOption counter
+    | counter == numOption = moveItemsPlayer xs numOption (counter + 1)
+    | otherwise = [x] ++ moveItemsPlayer xs numOption (counter + 1)
+    
 -- Take the enemies items
 lootEnemy :: Character -> Character -> X -> Y -> IO()
 lootEnemy player enemy x y = do
@@ -334,23 +348,22 @@ lootEnemy player enemy x y = do
     -- Check enemy's inventory
     if (length $ inventory enemy) > 0
         then do
-        -- Show enemy's inventory
-        slowTextRec "Inventory: \n" time
-        showInventory (inventory enemy) 0
-        -- Options
-        setSGR [SetColor Foreground Dull Yellow]
-        slowTextRec "Type gold to take the enemy's gold.\n" time
-        setSGR [SetColor Foreground Dull Green]
-        slowTextRec "Type item to take an enemy's item.\n" time
-        setSGR []
-        slowTextRec "Type leave to stop inspecting the corpse. \n" time
+            -- Show enemy's inventory
+            slowTextRec "Inventory: \n" time
+            showInventory (inventory enemy) 0
+            -- Options
+            setSGR [SetColor Foreground Dull Yellow]
+            slowTextRec "Type gold to take the enemy's gold.\n" time
+            setSGR [SetColor Foreground Dull Green]
+            slowTextRec "Type item to take an enemy's item.\n" time
+            setSGR []
+            slowTextRec "Type leave to stop inspecting the corpse. \n" time
 
-        putStr "Loot: "
-        option <- getLine
-        putStrLn ""
+            putStr "Loot: "
+            option <- getLine
+            putStrLn ""
 
-        lootOption player enemy option x y
-    
+            lootOption player enemy option x y
     -- Inventory is empty
     else do
         -- Check if enemy has gold
@@ -399,7 +412,7 @@ lootOption player enemy option x y
         battleCry player x y
     | otherwise = lootEnemy player enemy x y
 
--- Take enemie's gold
+-- Take enemy's gold
 lootGold :: Character -> Character -> X -> Y -> IO ()
 lootGold player enemy x y
     -- Enemy has gold
@@ -479,7 +492,7 @@ lootItem player enemy x y = do
                             let newCrit = crit enemy
                             let newAttacks = attacks enemy
                             -- Update inventory
-                            let newInventory = moveItems (inventory enemy) item
+                            let newInventory = moveItemsEnemy (inventory enemy) item
                             let newWeapon = weapon enemy
                             let newGold = gold enemy
 
@@ -503,6 +516,163 @@ lootItem player enemy x y = do
         lootEnemy player enemy x y
 
 
+-- User interacts with vendor
+vendor :: Character -> X -> Y -> IO ()
+vendor player x y = do
+    -- Display options
+    vendorInputOptions
+    -- Get user's input
+    putStr "Option: "
+    option <- getLine
+    putStrLn ""
+
+    -- Check if input is valid
+    if option == "sell" || option == "buy" || option == "leave"
+        then do
+            vendorOption player x y option
+    -- Input was invalid
+    else do
+        setSGR [SetColor Foreground Vivid Red]
+        putStrLn "Invalid option!\n"
+        setSGR []
+        vendor player x y
+
+-- Check selected option
+vendorOption :: Character -> X -> Y -> String -> IO()
+vendorOption player x y option
+    -- Sell items
+    | option == "sell" && (length $ inventory player) > 0 = do
+        let time = 20000
+        slowTextRec "Inventory: \n" time
+        showInventory (inventory player) 0
+        
+        -- Get user's input
+        putStr "Enter item index: "
+        index <- getChar
+        putStrLn "\n"
+    
+        let option = charToNum index
+
+        -- Check if given output is valid
+        if option /= -1
+            then do
+                -- Get selected item
+                let item = selectItemInInventory (inventory player) option 0
+
+                -- Check if item is returned
+                if item /= Item "N/A" "N/A" 0.0 0
+                    then do
+                        let newName = name player
+                        let newAttacks = attacks player
+                        let newCrit = crit player
+                        let newHealth = health player
+                        let newMaxHealth = maxHealth player
+                        let newWeapon = weapon player
+                        -- Add gold
+                        let newGold = gold player + money item
+                        -- Update inventory
+                        let newInventory = moveItemsPlayer (inventory player) option 0
+
+                        let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+                        
+                        setSGR [SetColor Foreground Vivid Yellow]
+                        let text = "Item sold!\n\nGold: " ++ (show newGold) ++ "\n"
+                        putStrLn text
+                        setSGR []
+                        -- Go back go vendor options
+                        vendor newChar x y
+                        
+                -- Item not found in inventory
+                else do
+                    setSGR [SetColor Foreground Vivid Red]
+                    putStrLn "Item not found!\n"
+                    setSGR []
+                    vendorOption player x y "sell"
+        -- Input was invalid
+        else do
+            setSGR [SetColor Foreground Vivid Red]
+            putStrLn "Invalid option!\n"
+            setSGR []
+            vendorOption player x y "sell"
+    -- Buy items
+    | option == "buy" && (length $ inventory player) < 9 = do
+        let vendorBag = [Item "Fel Blademaster Sword" "A fel blade, gift from the Burning Legion" 4.5 20, Item "Ressin's Sword" "Enhanced by the almighty Theory of Computation gods!" 10.0 500, Item "Thunderfury, Blessed Blade of the Windseeker" "The legendary sword once wielded by Thunderaan, Prince of Air. The prince, son of Al'Akir the Windlord, was attacked by Ragnaros the Firelord, in an attempt to heighten the already impressive power that the fire elemental held. Ragnaros succeeded; however, Thunderaan's power could not be completely taken into his form. What remained of Thunderaan was placed in a talisman of elemental binding, which was broken into two pieces. The pieces were then given to the Firelord's two lieutenants, Baron Geddon and Garr, respectively the left and right halves. These two halves are known as the  Bindings of the Windseeker." 20 1000]
+        -- Display vendor's items
+        putStrLn "Vendor's offer:\n"
+        showInventory vendorBag 0
+
+        -- Get user's input
+        putStr "Select item: "
+        index <- getChar
+        putStrLn "\n"
+        
+        let option = charToNum index
+
+        -- Check if given output is valid
+        if option /= -1
+            then do
+            -- Get selected item
+            let choice = selectItemInInventory vendorBag option 0
+            
+            -- Check if item is returned
+            if choice /= Item "N/A" "N/A" 0.0 0
+                then do
+                    -- Check if player has enough money
+                    if (gold player) >= (money choice)
+                        then do
+                            -- Reduce item's gold
+                            let item = Item (weaponName choice) (description choice) (weaponDamage choice) (money choice * 0.7)
+                            -- Modify player
+                            let newName = name player
+                            let newAttacks = attacks player
+                            let newCrit = crit player
+                            let newHealth = health player
+                            let newMaxHealth = maxHealth player
+                            let newWeapon = weapon player
+                            -- Remove gold
+                            let newGold = (gold player) - (money item)
+                            -- Update inventory
+                            let newInventory = inventory player ++ [item]
+
+                            let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
+                            
+                            setSGR [SetColor Foreground Vivid Yellow]
+                            let text = (weaponName item) ++" was bought!\n\nRemaining gold: " ++ (show newGold) ++ "\n"
+                            putStrLn text
+                            setSGR []
+                            -- Go back go vendor options
+                            vendor newChar x y
+                    else do
+                        setSGR [SetColor Foreground Vivid Red]
+                        putStrLn "Not enough gold!\n"
+                        setSGR []
+                        vendor player x y
+            -- Item not found in inventory
+            else do
+                setSGR [SetColor Foreground Vivid Red]
+                putStrLn "Item not found!\n"
+                setSGR []
+                vendorOption player x y "buy"
+        -- Option is not valid
+        else do
+            setSGR [SetColor Foreground Vivid Red]
+            putStrLn "Invalid option!\n"
+            setSGR []
+            vendor player x y
+    -- Inventory is full
+    | option == "buy"  && (length $ inventory player) >= 9 = do
+        setSGR [SetColor Foreground Vivid Red]
+        slowTextRec "Inventory is full!\n" 20000
+        vendor player x y
+    -- Inventory is empty
+    | option == "sell" && (length $ inventory player) == 0 = do
+        setSGR [SetColor Foreground Vivid Red]
+        slowTextRec "Inventory is empty!\n" 20000
+        vendor player x y
+    -- Leave store
+    | otherwise = do
+        slowTextRec "You leave the vendor and continue your adventure!\n" 20000
+        action x y player
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -524,29 +694,31 @@ action x y player = do
     actionInput <- getLine 
     putStrLn ""
 
-    let currentAction = removeMaybe $ stringToAction $ toUp actionInput
+    if actionInput /= ""
+        then do
+            let currentAction = removeMaybe $ stringToAction $ toUp actionInput
+            -- Check if input was valid
+            if currentAction == Exit
+                then action x y player
+            else do
+                -- Check if inventory was selected
+                if currentAction == Inventory
+                    -- Display inventory
+                    then 
+                        inventoryOption player x y
+                
+                else do
+                    -- Move inside grid
+                    let newCord = move currentAction x y
+                    
+                    -- Display a random move quote
+                    randomMoveQuote (getRandomNumber 1 4) 20000
 
-    -- Check if input was valid
-    if currentAction == Exit
-        then action x y player
-    else do
-        -- Check if inventory was selected
-        if currentAction == Inventory
-            -- Display inventory
-            then 
-                inventoryOption player x y
-        
-        else do
-            -- Move inside grid
-            let newCord = move currentAction x y
-            
-            -- Display a random move quote
-            randomMoveQuote (getRandomNumber 1 4) 20000
+                    -- Check what has happened to the player
+                    let nextAction = checkNextAction (fst newCord) (snd newCord)
 
-            -- Check what has happened to the player
-            let nextAction = checkNextAction (fst newCord) (snd newCord)
-
-            checkPlayerStatus nextAction (fst newCord) (snd newCord) player
+                    checkPlayerStatus nextAction (fst newCord) (snd newCord) player
+    else action x y player
 
     return ()
 
@@ -621,6 +793,10 @@ checkNextAction x y
         || (x, y) == (5, 0) 
         || (x, y) == (5, 3)
         || (x, y) == (7, 2) = Combat
+    -- Bumped into a vendor
+    | (x, y) == (0, 2)
+        || (x, y) == (6, 1)
+        || (x, y) == (6, 3) = Vendor
     -- Bumped into Arechron 
     | (x, y) == (6, 2) = Arechron
     -- Combat boss
@@ -683,6 +859,10 @@ checkPlayerStatus status x y player
     | status == WestBack = do
         endOfMap
         action (incPos x) y player
+    -- Check if player has met a vendor on their wya
+    | status == Vendor = do
+        vendorDialogue player
+        vendor player x y
     -- Check if player is alive and can freely move
     | status == Walk = action x y player
     -- Check if player has to fight an enemy
@@ -720,7 +900,7 @@ checkPlayerStatus status x y player
 getEnemy :: Int -> Character
 getEnemy n 
     | n == 1 = Character "Felguard" [(("1) Axe Toss", "The felguard hurls his axe"), 30.00), (("2) Legion Strike", "A sweeping attack that does damage"), 35.00), (("3) Overpower", "Charge the player and deal damage."), 40.00)] 1 300.00 300.00 [Item "Felguard Axe" "A mighty axe, forged by Sargeras himself." 3.1 20] (Item "Felguard Axe" "A mighty axe, forged by Sargeras himself." 3.1 20) 30
-    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [Item "Fel sword" "A tiny sword full of anger." 0.05 5] (Item "Fel sword" "A tiny sword full of anger." 0.05 5) 10
+    | n == 2 = Character "Imp" [(("1) Felbolt", "Deal fel fire damage to the player"), 10.00), (("2) Scorch", "Burn the player with fel fire"), 15.00), (("3) Rain of Fel", "Fire a fel meteorite shower"), 30.00)] 0.2 150.00 150.00 [Item "Fel sword" "A tiny sword full of anger." 0.05 5] (Item "Fel sword" "A tiny sword full of anger." 0.05 10) 10
     | n == 3 = Character "Voidlord" [(("1) Void grab", "Deal void damage to the player "), 30.00), (("2) Void bolt", "Send a void bolt to the player "), 35.00), (("3) Drain soul", "Drain the player's soul"), 50.00)] 0.8 200.00 200.00 [Item "Void claws" "Sharp and deadly claws." 2.0 15] (Item "Void claws" "Sharp and deadly claws." 2.0 15) 20
 
 -- Teleport player

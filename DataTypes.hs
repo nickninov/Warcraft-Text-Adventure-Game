@@ -17,9 +17,8 @@ type Description = String
 type Option = Char
 type Spells = [((Name, Description), Attack)]
 type AttackStatus = (Bool, Attack)
--- type Item = ((Name,Description), Attack)
 type Bag = [Item]
-type Gold = Int
+type Gold = Double
 
 
 -- Data Types
@@ -53,6 +52,7 @@ data Item = Item {
     Dead - the player is dead
     Walk - the player is alive and can move
     Combat - the player is in combat mode
+    Vendor - the player has met a vendor to sell and buy items
     Boss - the player is fighting against a boss
     Portal - the player bumps into a portal and gets teleported
     Finish - the player has successfully completed the game
@@ -66,7 +66,7 @@ data Item = Item {
     FelLavaStart - the player has bumped into the initial Fel Lava - (0, 0)
     FelDrink - the player can drink the blood of Mannoroth
 -}
-data CharacterStatus = Dead | Walk | Combat 
+data CharacterStatus = Dead | Walk | Combat | Vendor
             | Boss | Portal | Finish | Corpse | Person | Arechron
             | NorthBack | WestBack | SouthBack 
             | FelFireWallLeft | FelFireWallRight | FelLavaStart | FelLava | FelDrink

@@ -266,3 +266,18 @@ showInventory (x:xs) counter = do
     let text3 = "Price: " ++ (show $ money x) ++ " Gold\n"
     slowTextRec text3 20000
     showInventory xs (counter + 1)
+
+-- Vendor interaction
+vendorDialogue :: Character -> IO ()
+vendorDialogue player = do
+    let time = 20000
+    let text = "Greetings "++ (name player) ++ "! Would you like to buy or sell? I have the finest goods from this realm!\n"
+    dialogue "Unknown" text time
+
+vendorInputOptions :: IO ()
+vendorInputOptions = do
+    setSGR [SetColor Foreground Vivid Yellow]
+    slowTextRec "Type sell to sell items from your inventory.\n" 20000
+    setSGR [SetColor Foreground Vivid Green]
+    slowTextRec "Type buy to buy items from your inventory. \n" 20000
+    slowTextRec "Type leave to leave the vendor.\n" 20000
