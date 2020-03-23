@@ -173,7 +173,6 @@ critChance :: Bool -> Character -> Attack -> Attack
 critChance status character dmg
     | status == True = ((crit character) * dmg) + dmg
     | otherwise = dmg
-
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -514,7 +513,6 @@ lootItem player enemy x y = do
         slowTextRec "Inventory is full!" 20000
         setSGR []
         lootEnemy player enemy x y
-
 
 -- User interacts with vendor
 vendor :: Character -> X -> Y -> IO ()
@@ -915,9 +913,6 @@ teleport player x y
     | (x, y) == (2, 4) = do
         let enemy = getEnemy (getRandomNumber 1 3)
         healthStatus player enemy 7 2
-
-
-
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
