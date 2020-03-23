@@ -264,7 +264,7 @@ showInventory (x:xs) counter = do
     setSGR []
 
     let text3 = (description x)
-    dialogue "Description: " text3 20000
+    dialogue "Description" text3 20000
     
     let text4 = (show $ money x) ++ " gold\n"
     putStr "Price: "
