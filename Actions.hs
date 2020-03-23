@@ -33,7 +33,7 @@ healthStatus player enemy x y
     -- Both player and enemy died
     | otherwise = do
          putStr "Both player and enemy died...\n"
-         finish
+         credits 20000
 
 -- The combat logic
 combat :: Character -> Character -> X -> Y -> IO ()
@@ -594,7 +594,7 @@ vendorOption player x y option
             vendorOption player x y "sell"
     -- Buy items
     | option == "buy" && (length $ inventory player) < 9 = do
-        let vendorBag = [Item "Fel Blademaster Sword" "A fel blade, gift from the Burning Legion" 4.5 40, Item "Ressin's Sword" "Enhanced by the almighty Theory of Computation gods!" 6.0 100, Item "Thunderfury, Blessed Blade of the Windseeker" "The legendary sword once wielded by Thunderaan, Prince of Air. The prince, son of Al'Akir the Windlord, was attacked by Ragnaros the Firelord, in an attempt to heighten the already impressive power that the fire elemental held. Ragnaros succeeded; however, Thunderaan's power could not be completely taken into his form. What remained of Thunderaan was placed in a talisman of elemental binding, which was broken into two pieces. The pieces were then given to the Firelord's two lieutenants, Baron Geddon and Garr, respectively the left and right halves. These two halves are known as the  Bindings of the Windseeker." 20 1000]
+        let vendorBag = [Item "Fel Blademaster Sword" "A fel blade, gift from the Burning Legion" 5.5 60, Item "Ressin's Sword" "Enhanced by the almighty Theory of Computation gods!" 7.0 100, Item "Thunderfury, Blessed Blade of the Windseeker" "The legendary sword once wielded by Thunderaan, Prince of Air. The prince, son of Al'Akir the Windlord, was attacked by Ragnaros the Firelord, in an attempt to heighten the already impressive power that the fire elemental held. Ragnaros succeeded; however, Thunderaan's power could not be completely taken into his form. What remained of Thunderaan was placed in a talisman of elemental binding, which was broken into two pieces. The pieces were then given to the Firelord's two lieutenants, Baron Geddon and Garr, respectively the left and right halves. These two halves are known as the  Bindings of the Windseeker." 20 1000]
         -- Display vendor's items
         putStrLn "Vendor's offer:\n"
         showInventory vendorBag 0
