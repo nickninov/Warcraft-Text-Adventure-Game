@@ -210,7 +210,7 @@ corpse = do
 felFireWallBump :: IO ()
 felFireWallBump = do
     let time = 20000
-    dialogue "Samuro" "It seems that I cannot go forward anymore. The Fel fire will burn me! Going back East\n" time
+    dialogue "Samuro" "It seems that I cannot go forward anymore. The Fel fire will burn me! Going back.\n" time
     slowTextRec "You go back.\n" time
 
 -- Generate a random person encounter
