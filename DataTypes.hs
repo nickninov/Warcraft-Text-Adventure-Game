@@ -24,7 +24,7 @@ type Gold = Double
 -- Data Types
 
 -- Action data type - actions that the user can do
-data Action = South | East | West | North | Inventory| Exit
+data Action = South | East | West | North | Inventory | Leave | Exit
     deriving (Show, Read, Eq)
 
 -- Character data type 

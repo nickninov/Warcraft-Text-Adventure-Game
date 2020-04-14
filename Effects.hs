@@ -97,9 +97,7 @@ randomMoveQuote rng time
 intro :: IO ()
 intro = do
     let time = 20000
-    setTitle "21361642's Warcraft Text Adventure Game"
 
-    slowTextRec "21361642's Warcraft Text Adventure Game\n" time
     slowTextRec "You are have been teleported to a different realm, conquered by the Burning Legion! You need to find your way back to Durotar and help Rexxar sneak accross the channel in his boat.\n" time
     
     dialogue "Samuro" "Throm-Ka player! I am Samuro. My humble skills are yours.\n" time
@@ -107,10 +105,24 @@ intro = do
     putStrLn "How to play:\n"
     dialogue "Movement" "Type north, south, east or west to move around the map.\n" time
     dialogue "Inventory" "Type inventory to open you bag. You can equip items you loot from enemies or you have bought.\n" time
+    dialogue "Save" "Type save to save your current progress.\n" time
     dialogue "Combat" "Whilst walking you may encounter different difficulty enemies. Press 1, 2, 3 or 4 to cast a spell on an enemy.\n" time
     dialogue "Interaction" "You may encounter with other people, trapped in this realm or corpses of fallen heroes.\n" time
     quest "Quest" "Find a portal to Durotar!\n" time
     dialogue "Tip" "Go south.\n" time
+
+    -- Show the user the menu
+options :: IO ()
+options = do
+    let time = 20000
+    setTitle "21361642's Warcraft Text Adventure Game"
+
+    slowTextRec "21361642's Warcraft Text Adventure Game\n" time
+
+    putStrLn "Menu:\n"
+    dialogue "1)" "Start new game\n" time
+    dialogue "2)" "Load game\n" time
+
 
 -- Credits to the game creator
 credits :: Int -> IO ()

@@ -702,20 +702,25 @@ action x y player = do
                 -- Check if inventory was selected
                 if currentAction == Inventory
                     -- Display inventory
-                    then 
-                        inventoryOption player x y
-                
+                    then inventoryOption player x y
                 else do
-                    -- Move inside grid
-                    let newCord = move currentAction x y
-                    
-                    -- Display a random move quote
-                    randomMoveQuote (getRandomNumber 1 4) 20000
+                    -- Check if user wants to leave game
+                        if currentAction == Leave
+                            then do
+                                -- Save game
+                                saveGame player x y
+                                slowTextRec "You have exited the game!\n" 20000
+                        else do
+                            -- Move inside grid
+                            let newCord = move currentAction x y
+                            
+                            -- Display a random move quote
+                            randomMoveQuote (getRandomNumber 1 4) 20000
 
-                    -- Check what has happened to the player
-                    let nextAction = checkNextAction (fst newCord) (snd newCord)
+                            -- Check what has happened to the player
+                            let nextAction = checkNextAction (fst newCord) (snd newCord)
 
-                    checkPlayerStatus nextAction (fst newCord) (snd newCord) player
+                            checkPlayerStatus nextAction (fst newCord) (snd newCord) player
     else action x y player
 
     return ()
@@ -728,6 +733,7 @@ stringToAction "East" = Just East
 stringToAction "West" = Just West
 stringToAction "Exit" = Just Exit
 stringToAction "Inventory" = Just Inventory
+stringToAction "Leave" = Just Leave
 -- If player misspelt a word
 stringToAction _ = Nothing
 

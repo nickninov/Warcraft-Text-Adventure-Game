@@ -3,12 +3,14 @@ module Functions where
 
 -- Import files
 import DataTypes
+import Effects
 
 -- Import libraries
 import System.IO
 import Data.Char
 import System.Random
 import System.IO.Unsafe
+import System.Directory
 
 -- Cleans the screen as the :!clear command
 clear :: IO ()
@@ -44,4 +46,11 @@ charToNum '6' = 6
 charToNum '7' = 7
 charToNum '8' = 8
 charToNum '9' = 9
-charToNum _ = -1    
+charToNum _ = -1
+
+-- Save Character and coordinates
+saveGame :: Character -> X -> Y -> IO ()
+saveGame player x y = do
+    let fileData = ""++show player ++ "\n" ++ show x ++ "\n" ++ show y
+    writeFile "Character.txt" fileData
+    slowTextRec "Data successfully saved!\n" 20000
