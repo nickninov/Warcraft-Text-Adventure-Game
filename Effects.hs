@@ -105,7 +105,7 @@ intro = do
     putStrLn "How to play:\n"
     dialogue "Movement" "Type north, south, east or west to move around the map.\n" time
     dialogue "Inventory" "Type inventory to open you bag. You can equip items you loot from enemies or you have bought.\n" time
-    dialogue "Save" "Type save to save your current progress.\n" time
+    dialogue "Leave" "Type leave to save your current progress and exit the game.\n" time
     dialogue "Combat" "Whilst walking you may encounter different difficulty enemies. Press 1, 2, 3 or 4 to cast a spell on an enemy.\n" time
     dialogue "Interaction" "You may encounter with other people, trapped in this realm or corpses of fallen heroes.\n" time
     quest "Quest" "Find a portal to Durotar!\n" time
