@@ -20,8 +20,8 @@ Consists of all the generic functions, that are used within the game
 
 ## Used libraries
 
-- [System.Random](https://hackage.haskell.org/package/random-1.1/docs/System-Random.html) `cabal install random --lib`
-- [System.Console.ANSI](https://hackage.haskell.org/package/ansi-terminal-0.10.3/docs/System-Console-ANSI.html) `cabal install ansi-terminal --lib`
+- [System.Random](https://hackage.haskell.org/package/random-1.1/docs/System-Random.html) <br>`cabal install random --lib`
+- [System.Console.ANSI](https://hackage.haskell.org/package/ansi-terminal-0.10.3/docs/System-Console-ANSI.html) <br>`cabal install ansi-terminal --lib`
 
 ## How to run
 - `:load main.hs`
