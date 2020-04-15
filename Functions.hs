@@ -64,3 +64,11 @@ removeIfExists fileName = removeFile fileName `catch` handleExists
     where handleExists e
             | isDoesNotExistError e = return ()
             | otherwise = throwIO e
+
+-- Remove Maybe from Character data type
+removeCharacterMaybe :: Maybe Character -> Character
+removeCharacterMaybe (Just char) = char
+
+-- Remove Maybe from X and Y coordinates data type
+removeCoordinateMaybe :: Maybe Int -> Int
+removeCoordinateMaybe (Just coordinate) = coordinate

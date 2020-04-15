@@ -12,7 +12,7 @@ import System.IO.Unsafe
 import System.Directory
 import System.IO.Unsafe
 import System.Console.ANSI
-
+import Text.Read
 -- Launches the game
 main :: IO ()
 main = do
@@ -75,26 +75,36 @@ loadGameFile file = do
             -- Open file
             fileData <- openFile file ReadMode
             
-            -- Read character
-            charStr <- hGetLine fileData
-            -- Convert Character type from String to Character
-            let character = read charStr :: Character
-            
+            -- Read character data
+            charStr <- hGetLine fileData            
+            -- Try to convert Character type from String to Character
+            let character = readMaybe charStr :: Maybe Character
+
             -- Read X coordinate
             xStr <- hGetLine fileData
-            -- Convert X type from String to X
-            let x = read xStr :: X
+            -- Try to convert X type from String to X
+            let x = readMaybe xStr :: Maybe X
 
             -- Read Y coordinate
             yStr <- hGetLine fileData
-            -- Convert Y type from String to Y
-            let y = read yStr :: Y
+            -- Try to convert Y type from String to Y
+            let y = readMaybe yStr :: Maybe Y
 
             -- Close file
             hClose fileData
-
-            -- Start moving in the game - imported from Movement.hs
-            action x y character
+            
+            -- Check if file has been damaged
+            if character == Nothing || x == Nothing || y == Nothing
+                then do
+                    setSGR [SetColor Foreground Vivid Red]
+                    slowTextRec "File has been damaged. Launching a new game.\n" 20000
+                    launchNewGame file
+            -- File is not damaged
+            else do
+                let newChar = removeCharacterMaybe character
+                let newX = removeCoordinateMaybe x
+                let newY = removeCoordinateMaybe y
+                action newX newY newChar
     -- File does not exist
     else do 
         setSGR [SetColor Foreground Vivid Red]
