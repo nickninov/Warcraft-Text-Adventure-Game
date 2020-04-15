@@ -115,9 +115,9 @@ intro = do
 options :: IO ()
 options = do
     let time = 20000
-    setTitle "21361642's Warcraft Text Adventure Game"
+    setTitle "Nikolay's Warcraft Text Adventure Game"
 
-    slowTextRec "21361642's Warcraft Text Adventure Game\n" time
+    slowTextRec "Nikolay's Warcraft Text Adventure Game\n" time
 
     putStrLn "Menu:\n"
     dialogue "1)" "Start new game\n" time

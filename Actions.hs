@@ -718,9 +718,9 @@ action x y player = do
                             randomMoveQuote (getRandomNumber 1 4) 20000
 
                             -- Check what has happened to the player
-                            let nextAction = checkNextAction (fst newCord) (snd newCord)
+                            checkNextAction player (fst newCord) (snd newCord)
 
-                            checkPlayerStatus nextAction (fst newCord) (snd newCord) player
+                            -- checkPlayerStatus nextAction (fst newCord) (snd newCord) player
     else action x y player
 
     return ()
@@ -751,8 +751,8 @@ move action x y
     | action == West =  (decPos x, y)
 
 -- Check player's next action
-checkNextAction :: X -> Y -> CharacterStatus
-checkNextAction x y
+checkNextAction :: Character -> X -> Y -> IO()
+checkNextAction player x y
     -- End of map - North - go back 1 block
     | (x, y) == (1, -1)
         || (x, y) == (2, -1)
@@ -760,34 +760,54 @@ checkNextAction x y
         || (x, y) == (5, -1)
         || (x, y) == (6, -1)
         || (x, y) == (8, -1)
-        || (x, y) == (9, -1) = NorthBack 
+        || (x, y) == (9, -1) = do
+            -- Check if player has reached North map end  
+            endOfMap
+            action x (incPos y) player
     -- End of map - West - go back 1 block
     | (x, y) == (-1, 1)
         || (x, y) == (-1, 1)
         || (x, y) == (-1, 2)
-        || (x, y) == (-1, 3) = WestBack
+        || (x, y) == (-1, 3) = do 
+            -- Check if player has reached West map end
+            endOfMap
+            action (incPos x) y player
     -- End of Map
     | (x, y) == (5, 5)
         || (x, y) == (6, 4)
-        || (x, y) == (9, 3) = SouthBack
+        || (x, y) == (9, 3) = do
+            -- Check if player has reached South map end
+            endOfMap
+            action x (decPos y) player
     -- Bumped into the Fel fire wall - from the right side
     | (x, y) == (4, 0) 
         || (x, y) == (4, 2)
-        || (x, y) == (4, 3) = FelFireWallRight
-    -- Bumped into the Fel fire wall - from the left side
+        || (x, y) == (4, 3) = do
+            -- Bumped into the Fel fire wall - from the left side
+            felFireWallBump
+            action (incPos x) y player
     | (x, y) == (3, 0)
         || (x, y) == (3, 2)
-        || (x, y) == (3, 3) = FelFireWallLeft
+        || (x, y) == (3, 3) = do
+            -- Check if player is on the left side of the Fel Fire wall
+            felFireWallBump
+            action (decPos x) y player
     -- Bumped into the initial Fel lava - (0, 0)
-    | (x, y) == (0, 0) = FelLavaStart
+    | (x, y) == (0, 0) = do
+        -- Check if player has reached the initial Fel lava - (0, 0) - go to (0, 1)
+        endOfMap
+        action x (incPos y) player
     -- Bumped into Fel lava
     | (x, y) == (7, 0)
         || (x, y) == (7, 1)
-        || (x, y) == (7, 3) = FelLava
+        || (x, y) == (7, 3) = do
+            -- Check if player has reached Fel lava - go back (x - 1, y)
+            felLava
+            action (decPos x) y player
     -- Bumped into a Fel drink
     | (x, y) == (5, 2)
         || (x, y) == (8, 1) 
-        || (x, y) == (8, 2) = FelDrink
+        || (x, y) == (8, 2) = felBlood player x y
     -- Combat mob(s)
     | (x, y) == (0, 3)
         || (x, y) == (2, 0)
@@ -796,111 +816,57 @@ checkNextAction x y
         || (x, y) == (4, 1)
         || (x, y) == (5, 0) 
         || (x, y) == (5, 3)
-        || (x, y) == (7, 2) = Combat
+        || (x, y) == (7, 2) = do
+            -- Check if the player is in combat
+            let enemy = getEnemy (getRandomNumber 1 3)
+            healthStatus player enemy x y
     -- Bumped into a vendor
     | (x, y) == (0, 2)
         || (x, y) == (6, 1)
-        || (x, y) == (6, 3) = Vendor
+        || (x, y) == (6, 3) = do
+            -- Check if player has met a vendor on their way
+            vendorDialogue player
+            vendor player x y
     -- Bumped into Arechron 
-    | (x, y) == (6, 2) = Arechron
+    | (x, y) == (6, 2) = do
+        -- Check if player has bumped into Arechron
+        dialogueArechron
+        narusGift player x y
     -- Combat boss
     | (x, y) == (3, 1)
         || (x, y) == (9, 0)
         || (x, y) == (9, 1)
-        || (x, y) == (9, 2) = Boss
+        || (x, y) == (9, 2) = do
+            let boss = Character "Pit Lord" [(("1) Slam", "Slams the opponent."), 10.00), (("2) Fel Fire Nova", "Emitting a steady pulse of fel fire, dealing damage to the player."), 50.00), (("3) Overpower", "Instantly overpower the enemy, causing high weapon damage."), 70.00)] 3.0 1000.00 1000.00 [ Item "Gorehowl" "The mighty weapon of the Hellscream family" 10.00 1000] (Item "Gorehowl" "The mighty weapon of the Hellscream family" 10.00 1000) 100
+            healthStatus player boss x y
     -- Finish points
     | (x, y) == (10, 0)
         || (x, y) == (10, 1)
-        || (x, y) == (10, 2) = Finish
+        || (x, y) == (10, 2) = do
+            -- Check if player has finished the game
+            removeIfExists "Character.txt"
+            finish
     -- Teleport user to new location
     | (x, y) == (0, 4) -- Teleports to (4, 1)
         || (x, y) == (1, 4) -- Teleports to (5, 3)
-        || (x, y) == (2, 4) = Portal -- Teleports to (7, 2)
+        || (x, y) == (2, 4) = do -- Teleports to (7, 2)
+            -- Check where to teleport player
+            portal
+            teleport player x y
     -- Bump into a dead corpse
     | (x, y) == (1, 3) 
-        || (x, y) == (5, 4) = Corpse
+        || (x, y) == (5, 4) = do
+            -- Check if player has bumped into a corpse
+            corpse
+            action x y player
     -- Bump into a person on this realm
     | (x, y) == (1, 2)
-        || (x, y) == (5, 1) = Person
+        || (x, y) == (5, 1) = do
+            -- Check if player has bumped into a person
+            person (getRandomNumber 1 3) 20000
+            action x y player
     -- Player can walk
-    | otherwise = Walk
-
--- Check what has to happen to the player
-checkPlayerStatus :: CharacterStatus -> X -> Y -> Character -> IO ()
-checkPlayerStatus status x y player
-    -- Check if the player is dead
-    | status == Dead = do
-        setSGR [SetColor Foreground Dull Yellow]
-        putStrLn "Game over. You died!\n"
-        finish
-        setSGR []
-    -- Check if the player is in combat
-    | status == Combat = do
-        let enemy = getEnemy (getRandomNumber 1 3)
-        healthStatus player enemy x y
-    | status == Boss = do
-        let boss = Character "Pit Lord" [(("1) Slam", "Slams the opponent."), 10.00), (("2) Fel Fire Nova", "Emitting a steady pulse of fel fire, dealing damage to the player."), 50.00), (("3) Overpower", "Instantly overpower the enemy, causing high weapon damage."), 70.00)] 3.0 1000.00 1000.00 [ Item "Gorehowl" "The mighty weapon of the Hellscream family" 10.00 1000] (Item "Gorehowl" "The mighty weapon of the Hellscream family" 10.00 1000) 100
-        healthStatus player boss x y
-    -- Check if player has reached North map end 
-    | status == NorthBack = do
-        endOfMap
-        action x (incPos y) player
-    -- Check if player has reached South map end
-    | status == SouthBack = do
-        endOfMap
-        action x (decPos y) player
-    -- Check if player has bumped into a Fel river
-    | status == FelDrink = felBlood player x y
-    -- Check if player has reached Fel lava - go back (x - 1, y)
-    | status == FelLava = do
-        felLava
-        action (decPos x) y player
-    -- Check if player has reached the initial Fel lava - (0, 0) - go to (0, 1)
-    | status == FelLavaStart = do
-        endOfMap
-        action x (incPos y) player
-    -- Check if player has reached West map end
-    | status == WestBack = do
-        endOfMap
-        action (incPos x) y player
-    -- Check if player has met a vendor on their wya
-    | status == Vendor = do
-        vendorDialogue player
-        vendor player x y
-    -- Check if player is alive and can freely move
-    | status == Walk = action x y player
-    -- Check if player has to fight an enemy
-    | status == Combat = do
-        let enemy = getEnemy (getRandomNumber 1 3)
-        healthStatus player enemy x y
-    -- Check where to teleport player
-    | status == Portal = do 
-        portal
-        teleport player x y
-    -- Check if player has bumped into Arechron
-    | status == Arechron = do 
-        dialogueArechron
-        narusGift player x y
-    -- Check if player has bumped into a corpse
-    | status == Corpse = do
-        corpse
-        action x y player
-    -- Check if player is on the right side of the Fel Fire wall
-    | status == FelFireWallRight = do
-        felFireWallBump
-        action (incPos x) y player
-    -- Check if player is on the left side of the Fel Fire wall
-    | status == FelFireWallLeft = do
-        felFireWallBump
-        action (decPos x) y player
-    -- Check if player has bumped into a person
-    | status == Person = do
-        person (getRandomNumber 1 3) 20000
-        action x y player
-    -- Check if player has finished the game
-    | status == Finish = do 
-        removeIfExists "Character.txt"
-        finish
+    | otherwise = action x y player
 
 -- Generates a mob for the player to fight
 getEnemy :: Int -> Character
