@@ -11,6 +11,9 @@ import Data.Char
 import System.Random
 import System.IO.Unsafe
 import System.Directory
+import Prelude hiding (catch)
+import Control.Exception
+import System.IO.Error hiding (catch)
 
 -- Cleans the screen as the :!clear command
 clear :: IO ()
@@ -54,3 +57,10 @@ saveGame player x y = do
     let fileData = ""++show player ++ "\n" ++ show x ++ "\n" ++ show y
     writeFile "Character.txt" fileData
     slowTextRec "Data successfully saved!\n" 20000
+
+-- Removes a file if it exists
+removeIfExists :: FilePath -> IO ()
+removeIfExists fileName = removeFile fileName `catch` handleExists
+    where handleExists e
+            | isDoesNotExistError e = return ()
+            | otherwise = throwIO e

@@ -898,7 +898,9 @@ checkPlayerStatus status x y player
         person (getRandomNumber 1 3) 20000
         action x y player
     -- Check if player has finished the game
-    | status == Finish = finish
+    | status == Finish = do 
+        removeIfExists "Character.txt"
+        finish
 
 -- Generates a mob for the player to fight
 getEnemy :: Int -> Character
