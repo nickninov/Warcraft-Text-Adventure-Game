@@ -16,7 +16,7 @@ Consists of all the text effects that are used in the game
 Consists of all the movement logic, combat system and stats modifiers in the game
 
 ### Functions.hs
-Consists of all the generic functions, that are used within the game
+Consists of all the generic functions, that are used within the game and dealing with saving or loading the game
 
 ## Used libraries
 
