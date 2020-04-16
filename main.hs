@@ -133,11 +133,3 @@ loadGameFile file = do
                 setSGR [SetColor Foreground Vivid Red]
                 slowTextRec "Invalid game positions. Launching a new game.\n" 20000
                 launchNewGame file
-
--- Get all valid X and Y positions
-positions :: Positions
-positions = [(0,0),(0,1),(0,2),(0,3),(0,4),(1,0),(1,1),(1,2),(1,3),(1,4),(2,0),(2,1),(2,2),(2,3),(2,4),(3,0),(3,1),(3,2),(3,3),(4,0),(4,1),(4,2),(4,3),(5,0),(5,1),(5,2),(5,3),(5,4),(6,0),(6,1),(6,2),(6,3),(7,0),(7,1),(7,2),(7,3),(8,0),(8,1),(8,2),(9,0),(9,1),(9,2)]
-
--- Check if X Y coordinates are valid
-checkXandY :: X -> Y -> Positions -> Bool
-checkXandY x y positions = any (== (x, y)) positions
