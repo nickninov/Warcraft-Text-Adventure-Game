@@ -719,11 +719,7 @@ action x y player = do
 
                             -- Check what has happened to the player
                             checkNextAction player (fst newCord) (snd newCord)
-
-                            -- checkPlayerStatus nextAction (fst newCord) (snd newCord) player
     else action x y player
-
-    return ()
 
 -- Convert the String movement to a Maybe Movement data type
 stringToAction :: String -> Maybe Action
@@ -915,7 +911,6 @@ battleCry player x y = do
     dialogue "Samuro" "For the Burning Blade!\n" 20000
     dialogue "Battle cry" "Increase overall damage by 0.5% for all of your spells!\n" 20000
     slowTextRec "Your wounds magically heal faster. You have been restored to maximum health.\n" 20000
-
     -- Move character
     action x y newChar
 
@@ -950,7 +945,7 @@ felChoice player x y choice
         let newChar = Character newName newAttacks newCrit newHealth newMaxHealth newInventory newWeapon newGold
         setSGR [SetColor Foreground Vivid Green]
         slowTextRec "You have accepted Gul'dan's offer. Now you feel stronger!\n" 20000
-
+        -- Move character
         action x y newChar
     | choice == "no" = do
         slowTextRec "You have rejected Gul'dan's gift.\n" 20000

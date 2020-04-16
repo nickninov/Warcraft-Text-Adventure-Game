@@ -7,6 +7,7 @@ module DataTypes where
 type X = Int
 type Y = Int
 type Position = (X, Y)
+type Positions = [Position]
 
 -- Player types
 type Name = String
@@ -20,12 +21,13 @@ type AttackStatus = (Bool, Attack)
 type Bag = [Item]
 type Gold = Double
 
-
 -- Data Types
 
 -- Action data type - actions that the user can do
 data Action = South | East | West | North | Inventory | Leave | Exit
     deriving (Show, Read, Eq)
+
+data Errors = Ligma
 
 -- Character data type 
 data Character = Character {

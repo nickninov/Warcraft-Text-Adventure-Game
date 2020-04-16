@@ -13,6 +13,7 @@ import System.Directory
 import System.IO.Unsafe
 import System.Console.ANSI
 import Text.Read
+import Control.Exception
 -- Launches the game
 main :: IO ()
 main = do
@@ -34,7 +35,7 @@ main = do
             if option == '1'
                 then launchNewGame file
             -- Load game file
-            else loadGameFile file
+            else loadGame file
     -- Option was invalid
     else main
 
@@ -65,48 +66,78 @@ launchNewGame file = do
     action x y character
 
 -- Load game start
-loadGameFile :: FilePath -> IO()
-loadGameFile file = do
+loadGame :: FilePath -> IO()
+loadGame file = do
     let exist = unsafePerformIO $ doesFileExist file
     
     -- File exists
     if exist == True
+        -- Check if file has data
         then do
-            -- Open file
-            fileData <- openFile file ReadMode
-            
-            -- Read character data
-            charStr <- hGetLine fileData            
-            -- Try to convert Character type from String to Character
-            let character = readMaybe charStr :: Maybe Character
+            contents <- readFile file
 
-            -- Read X coordinate
-            xStr <- hGetLine fileData
-            -- Try to convert X type from String to X
-            let x = readMaybe xStr :: Maybe X
-
-            -- Read Y coordinate
-            yStr <- hGetLine fileData
-            -- Try to convert Y type from String to Y
-            let y = readMaybe yStr :: Maybe Y
-
-            -- Close file
-            hClose fileData
-            
-            -- Check if file has been damaged
-            if character == Nothing || x == Nothing || y == Nothing
-                then do
-                    setSGR [SetColor Foreground Vivid Red]
-                    slowTextRec "File has been damaged. Launching a new game.\n" 20000
-                    launchNewGame file
-            -- File is not damaged
+            if (length $ lines contents) == 3
+                then loadGameFile file
             else do
-                let newChar = removeCharacterMaybe character
-                let newX = removeCoordinateMaybe x
-                let newY = removeCoordinateMaybe y
-                action newX newY newChar
+                setSGR [SetColor Foreground Vivid Red]
+                slowTextRec "Data in the file has been deleted. Creating new game.\n" 20000
+                launchNewGame file
+            
     -- File does not exist
     else do 
         setSGR [SetColor Foreground Vivid Red]
         slowTextRec "File does not exist...\n" 20000
         main
+
+
+loadGameFile :: FilePath -> IO ()
+loadGameFile file = do
+     -- Open file
+     fileData <- openFile file ReadMode
+            
+     -- Read character data
+     charStr <- hGetLine fileData            
+     -- Try to convert Character type from String to Character
+     let character = readMaybe charStr :: Maybe Character
+
+     -- Read X coordinate
+     xStr <- hGetLine fileData
+     -- Try to convert X type from String to X
+     let x = readMaybe xStr :: Maybe X
+
+     -- Read Y coordinate
+     yStr <- hGetLine fileData
+     -- Try to convert Y type from String to Y
+     let y = readMaybe yStr :: Maybe Y
+
+     -- Close file
+     hClose fileData
+     
+     -- Check if file has been damaged
+     if character == Nothing || x == Nothing || y == Nothing
+         then do
+             setSGR [SetColor Foreground Vivid Red]
+             slowTextRec "File has been damaged. Launching a new game.\n" 20000
+             launchNewGame file
+     -- File is not damaged
+     else do
+        let newX = removeCoordinateMaybe x
+        let newY = removeCoordinateMaybe y
+        -- Check if loaded postions are valid
+        if (checkXandY newX newY positions) == True
+            then do
+                let newChar = removeCharacterMaybe character
+                checkNextAction newChar newX newY
+            -- Invalid positions
+            else do
+                setSGR [SetColor Foreground Vivid Red]
+                slowTextRec "Invalid game positions. Launching a new game.\n" 20000
+                launchNewGame file
+
+-- Get all valid X and Y positions
+positions :: Positions
+positions = [(0,0),(0,1),(0,2),(0,3),(0,4),(1,0),(1,1),(1,2),(1,3),(1,4),(2,0),(2,1),(2,2),(2,3),(2,4),(3,0),(3,1),(3,2),(3,3),(4,0),(4,1),(4,2),(4,3),(5,0),(5,1),(5,2),(5,3),(5,4),(6,0),(6,1),(6,2),(6,3),(7,0),(7,1),(7,2),(7,3),(8,0),(8,1),(8,2),(9,0),(9,1),(9,2)]
+
+-- Check if X Y coordinates are valid
+checkXandY :: X -> Y -> Positions -> Bool
+checkXandY x y positions = any (== (x, y)) positions
