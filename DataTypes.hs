@@ -27,8 +27,6 @@ type Gold = Double
 data Action = South | East | West | North | Inventory | Leave | Exit
     deriving (Show, Read, Eq)
 
-data Errors = Ligma
-
 -- Character data type 
 data Character = Character {
     name :: Name,
