@@ -82,7 +82,7 @@ loadGame file = do
                 setSGR [SetColor Foreground Vivid Red]
                 slowTextRec "Data in the file has been deleted. Creating new game.\n" 20000
                 launchNewGame file
-            
+      
     -- File does not exist
     else do 
         setSGR [SetColor Foreground Vivid Red]

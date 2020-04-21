@@ -314,8 +314,7 @@ changePlayerWeapon player item numOption
 -- Changes the player's damage
 changeWeaponDamage :: Spells -> Attack -> Attack -> Attack -> Spells
 changeWeaponDamage [] _ _ _= []
-changeWeaponDamage (x:xs) spellDamage oldWeaponDmg newWeaponDmg = do
-    [(fst x, (snd x + (newWeaponDmg - oldWeaponDmg) * spellDamage))] ++ changeWeaponDamage xs (spellDamage + 5) oldWeaponDmg newWeaponDmg
+changeWeaponDamage (x:xs) spellDamage oldWeaponDmg newWeaponDmg = [(fst x, (snd x + (newWeaponDmg - oldWeaponDmg) * spellDamage))] ++ changeWeaponDamage xs (spellDamage + 5) oldWeaponDmg newWeaponDmg
     
 -- Remove selected item from bag - enemy
 moveItemsEnemy :: Bag -> Item -> Bag
@@ -526,8 +525,7 @@ vendor player x y = do
 
     -- Check if input is valid
     if option == "sell" || option == "buy" || option == "leave"
-        then do
-            vendorOption player x y option
+        then vendorOption player x y option
     -- Input was invalid
     else do
         setSGR [SetColor Foreground Vivid Red]
