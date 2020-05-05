@@ -46,28 +46,3 @@ data Item = Item {
     weaponDamage :: Attack,
     money :: Gold
 } deriving (Show, Read, Eq)
-
-{- 
-    Status data type - is the character dead, alive, in combat or in a room.
-    Dead - the player is dead
-    Walk - the player is alive and can move
-    Combat - the player is in combat mode
-    Vendor - the player has met a vendor to sell and buy items
-    Boss - the player is fighting against a boss
-    Portal - the player bumps into a portal and gets teleported
-    Finish - the player has successfully completed the game
-    Corpse - the player bumps into another fallen hero
-    Person - the player has met a person
-    Arechron - the player has met Arechron
-    NorthBack & WestBack & SouthBack - the player has reached the end of the map and is visiting a cave.
-    FelFireWallLeft - the player has reached a fel fire wall from the left side
-    FelFireWallRight - the player has reached a fel fire wall from the right side
-    FelLava - the player has reached a green lava pool
-    FelLavaStart - the player has bumped into the initial Fel Lava - (0, 0)
-    FelDrink - the player can drink the blood of Mannoroth
--}
-data CharacterStatus = Dead | Walk | Combat | Vendor
-            | Boss | Portal | Finish | Corpse | Person | Arechron
-            | NorthBack | WestBack | SouthBack 
-            | FelFireWallLeft | FelFireWallRight | FelLavaStart | FelLava | FelDrink
-    deriving (Show, Read, Eq)
