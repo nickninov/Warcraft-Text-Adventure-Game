@@ -26,3 +26,8 @@ Consists of all the generic functions, that are used within the game and dealing
 ## How to run
 - `:load main.hs`
 - `main`
+
+## How to play
+- Type north, south, east or west to move around the map
+- Type inventory to open you bag. You can equip items you loot from enemies or you have bought.
+- Whilst walking you may encounter different difficulty enemies. Press 1, 2, 3 or 4 to cast a spell on an enemy.
