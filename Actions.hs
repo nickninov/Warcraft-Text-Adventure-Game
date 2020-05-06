@@ -17,17 +17,14 @@ import Data.Char
 healthStatus :: Character -> Character -> X -> Y -> IO ()
 healthStatus player enemy x y
     -- Both player and enemy are alive
-    | health player > 0 && health enemy > 0 = do
-        combat player enemy x y
+    | health player > 0 && health enemy > 0 = combat player enemy x y
     -- Enemy has been slain
     | health player > 0 && health enemy <= 0 = do 
         killedEnemy player enemy x y
         -- Loot enemy
         let text = "You see something shining from " ++ (name enemy) ++ ".\n"
         slowTextRec text 20000
-
         lootEnemy player enemy x y
-        
     -- Player has been slain
     | health player <= 0 && health enemy > 0 = killedByEnemy enemy
     -- Both player and enemy died
