@@ -1,5 +1,5 @@
 # Haskell-Warcraft-Text-Adventure-Game
-A Warcraft text adventure game made with Haskell.
+A Warcraft text adventure game made with Haskell. This game was inspired by the Warcraft 3 quest **[Infiltrate Theramore](https://youtu.be/8AXsjEg9WNM?t=292)** where you play as Samuro
 
 ## Files
 
